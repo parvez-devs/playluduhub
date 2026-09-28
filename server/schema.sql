@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS users(
  id TEXT PRIMARY KEY, name TEXT NOT NULL, username TEXT NOT NULL COLLATE NOCASE UNIQUE,
  phone TEXT NOT NULL UNIQUE, email TEXT NOT NULL COLLATE NOCASE UNIQUE, password_hash TEXT NOT NULL,
  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','banned')),
- avatar TEXT, display_name TEXT, kyc_status TEXT NOT NULL DEFAULT 'none' CHECK(kyc_status IN ('none','pending','verified','rejected')),
+ avatar TEXT, display_name TEXT,
  self_excluded INTEGER NOT NULL DEFAULT 0 CHECK(self_excluded IN(0,1)), cool_off_until INTEGER,
  daily_deposit_limit INTEGER, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
 );
@@ -44,7 +44,6 @@ CREATE TABLE IF NOT EXISTS payment_methods(id TEXT PRIMARY KEY,kind TEXT NOT NUL
 CREATE TABLE IF NOT EXISTS matches(id TEXT PRIMARY KEY,mode TEXT NOT NULL DEFAULT 'pvp',player_a_id TEXT NOT NULL REFERENCES users(id),player_b_id TEXT REFERENCES users(id),entry_fee INTEGER NOT NULL,bet_amount INTEGER NOT NULL,status TEXT NOT NULL CHECK(status IN('waiting','active','finished','cancelled','disputed')),winner_id TEXT REFERENCES users(id),end_reason TEXT,state_json TEXT,revision INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,started_at INTEGER,ended_at INTEGER);
 CREATE INDEX IF NOT EXISTS idx_matches_status ON matches(status,created_at DESC);
 CREATE TABLE IF NOT EXISTS match_players(match_id TEXT NOT NULL REFERENCES matches(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id),seat INTEGER NOT NULL CHECK(seat IN(0,1)),locked_amount INTEGER NOT NULL DEFAULT 0,timeout_strikes INTEGER NOT NULL DEFAULT 0,connected INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(match_id,user_id),UNIQUE(match_id,seat));
-CREATE TABLE IF NOT EXISTS kyc_documents(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),doc_type TEXT NOT NULL,mime_type TEXT NOT NULL,file_name TEXT NOT NULL,cipher_blob BLOB NOT NULL,iv BLOB NOT NULL,auth_tag BLOB NOT NULL,status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN('pending','verified','rejected')),created_at INTEGER NOT NULL,reviewed_at INTEGER);
 CREATE TABLE IF NOT EXISTS aml_flags(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),kind TEXT NOT NULL,severity TEXT NOT NULL CHECK(severity IN('low','medium','high')),ref_id TEXT,details TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'open' CHECK(status IN('open','reviewed','closed')),created_at INTEGER NOT NULL,reviewed_at INTEGER);
 CREATE INDEX IF NOT EXISTS idx_aml_open ON aml_flags(status,created_at DESC);
 CREATE TABLE IF NOT EXISTS audit_log(id TEXT PRIMARY KEY,actor_type TEXT NOT NULL,actor_id TEXT,action TEXT NOT NULL,target_type TEXT,target_id TEXT,ip_hash TEXT,details TEXT,created_at INTEGER NOT NULL);

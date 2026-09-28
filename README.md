@@ -1,6 +1,6 @@
 # PLAY LUDU HUB v12
 
-Licensed real-money two-player PvP Ludo reference implementation for Node.js, SQLite, WebSocket, Vanilla HTML/JS, Telegram admin approvals, KYC/AML controls, and merchant-gateway deposit/payout workflows.
+Licensed real-money two-player PvP Ludo reference implementation for Node.js, SQLite, WebSocket, Vanilla HTML/JS, Telegram admin approvals, AML controls, and merchant-gateway deposit/payout workflows.
 
 This package is designed so that money state, match state, and administrative state are server-authoritative. The browser never decides dice values, legal moves, wallet results, settlement winners, or payment status. Production launch still requires mapping the generic merchant adapter in `server/payments.js` to the exact signed request/response contract supplied by your approved bKash/Nagad merchant gateway, plus an independent security/compliance review of the deployed environment.
 
@@ -24,13 +24,11 @@ This package is designed so that money state, match state, and administrative st
 
 `server/payments.js` implements deposit requests, merchant verification, payout submission, signed/idempotent gateway requests, signed webhook handling, payout finalization/refund behavior, and gateway reconciliation calls. Do not silently translate a timeout into a refund: an uncertain payout stays `processing` until a definitive webhook/reconciliation result.
 
-`server/kyc.js` accepts NID/passport files up to 2 MB and encrypts them with AES-256-GCM before storing the encrypted blob in SQLite. Admins can securely retrieve and review a document while authenticated.
-
 `server/aml.js` enforces Bangladesh-time daily limits, threshold flags, deposit velocity flags, and produces the AML review queue.
 
 `server/telegram.js` polls Bot API `getUpdates`, posts account/deposit/withdrawal/dispute events, verifies callback sender IDs against `TELEGRAM_ADMIN_IDS`, and routes Approve/Reject callbacks into the same server-side decision functions used by Admin Hub.
 
-`server/admin.js` provides PIN sessions, three-failure lockout, CSRF tokens, approval actions, user management, balance adjustment, payment-method management, configuration, ledger CSV, audit viewer data, KYC review, AML data, live-match controls, and daily reconciliation.
+`server/admin.js` provides PIN sessions, three-failure lockout, CSRF tokens, approval actions, user management, balance adjustment, payment-method management, configuration, ledger CSV, audit viewer data, AML data, live-match controls, and daily reconciliation.
 
 `server/auth.js` implements scrypt password hashing, signup, username/phone/email login, server-side 30-day sessions, signed random session tokens, login rotation, and public user shaping.
 
@@ -40,11 +38,11 @@ This package is designed so that money state, match state, and administrative st
 
 `server.js` is the HTTP entry point. It serves the frontend, implements the REST API, rate limits IP/user traffic, applies idempotency to money-changing routes, starts Telegram and WebSocket services, and serves Admin Hub at `/adminhub`.
 
-`public/index.html`, `public/app.js`, `public/wallet.js`, and `public/pvp-lobby.js` implement signup/login, wallet balances, deposit/withdrawal requests, responsible-gaming controls, encrypted KYC submission, and the PvP lobby.
+`public/index.html`, `public/app.js`, `public/wallet.js`, and `public/pvp-lobby.js` implement signup/login, wallet balances, deposit/withdrawal requests, responsible-gaming controls and the PvP lobby.
 
 `public/game/index.html`, `public/game/game-engine.js`, `public/game/pvp-client.js`, and `public/game/style.css` implement the mobile game client. The client is intentionally presentation-only: it draws state and sends intents; it does not own authoritative rules.
 
-`public/adminhub/index.html`, `public/adminhub/admin.js`, and `public/adminhub/withdraw.js` implement the PIN-gated operator UI with pending approvals, KYC review, users, live matches, payment methods, configuration, ledger, AML, audit, and reconciliation.
+`public/adminhub/index.html`, `public/adminhub/admin.js`, and `public/adminhub/withdraw.js` implement the PIN-gated operator UI with pending approvals, users, live matches, payment methods, configuration, ledger, AML, audit, and reconciliation.
 
 `run-termux.sh` installs the Termux build toolchain needed by `better-sqlite3`, installs dependencies, migrates/checks the project, and starts the server.
 
@@ -123,7 +121,6 @@ The complete executable SQL schema is in `server/schema.sql`. It creates:
 - `payment_methods`
 - `matches`
 - `match_players`
-- `kyc_documents`
 - `aml_flags`
 - `audit_log`
 - `app_config`
@@ -278,16 +275,6 @@ Admin approval calls the merchant verify API. Wallet cash is credited only after
 
 `sourceBucket` may be `winnings`, `cash` when `withdrawFromCash=true`, or `bonus` when `bonusWithdrawable=true`.
 
-### KYC
-
-`POST /api/kyc`
-
-```json
-{"docType":"nid","mimeType":"image/jpeg","dataBase64":"..."}
-```
-
-Accepted MIME types are JPEG, PNG, and PDF; decoded data must be at most 2 MB.
-
 ### PvP
 
 `GET /api/pvp/open`
@@ -348,7 +335,6 @@ Read endpoints:
 - `GET /api/admin/aml`
 - `GET /api/admin/reconciliation?date=YYYY-MM-DD`
 - `GET /api/admin/payment-methods`
-- `GET /api/admin/kyc/:kycId`
 
 Mutation endpoints:
 
@@ -362,7 +348,6 @@ Mutation endpoints:
 - `POST /api/admin/withdrawal/:id/reject`
 - `POST /api/admin/users/:id/status`
 - `POST /api/admin/users/:id/adjust`
-- `POST /api/admin/users/:id/kyc`
 - `POST /api/admin/matches/:id/force-end`
 
 ## Merchant gateway adapter contract
@@ -471,7 +456,7 @@ Only Telegram sender IDs in `TELEGRAM_ADMIN_IDS` can execute callback actions. T
 1. Install Termux from a maintained source and update packages.
 2. Extract the project to a private application directory.
 3. Copy `config.example.sh` to `config.sh`.
-4. Generate strong random values for `SESSION_SECRET`, `ADMIN_PIN`, `PAYMENT_WEBHOOK_SECRET`, and `KYC_STORAGE_KEY`.
+4. Generate strong random values for `SESSION_SECRET`, `ADMIN_PIN`, and `PAYMENT_WEBHOOK_SECRET`.
 5. Restrict secrets:
 
 ```sh
@@ -610,7 +595,6 @@ sqlite3 data/backups/db-YYYY.sqlite 'PRAGMA integrity_check;'
 - withdrawal rejection refunds exactly once.
 - payout timeout stays locked/processing instead of refunding prematurely.
 - withdrawal fee is credited to operator and only net payout increments `totalWithdrawn`.
-- KYC encrypt/decrypt round-trip succeeds and wrong key fails authentication.
 - admin third bad PIN locks the device identity.
 
 ### Integration tests
@@ -627,7 +611,6 @@ sqlite3 data/backups/db-YYYY.sqlite 'PRAGMA integrity_check;'
 - Duplicate webhook event returns duplicate/no-op behavior.
 - Admin CSRF missing/wrong blocks mutation.
 - Non-admin Telegram callback sender is rejected.
-- KYC-required withdrawal is blocked until KYC verified.
 - Daily Dhaka deposit/withdraw limit boundaries work across midnight UTC+6.
 
 ### Manual/security tests
@@ -638,7 +621,6 @@ sqlite3 data/backups/db-YYYY.sqlite 'PRAGMA integrity_check;'
 - Two tabs logged into same match.
 - Invalid token ID / repeated roll / out-of-turn move.
 - 32 KB WebSocket payload cap.
-- 2 MB KYC cap and MIME allowlist.
 - SQL injection strings in every text field.
 - HTML/script strings in username/chat/admin fields.
 - Brute-force admin PIN and player login rate limits.
@@ -672,14 +654,14 @@ npm run check
 3. Verify the provider's reversal/chargeback status directly; do not rely on a screenshot supplied by a player.
 4. Reconcile the original deposit ledger entry, subsequent match spending, winnings, withdrawals, and current balances.
 5. Use a new compensating `adjustment`/reversal posting rather than deleting or editing the original deposit ledger row.
-6. Escalate AML/KYC review where your policy or applicable law requires it.
+6. Escalate AML review where your policy or applicable law requires it.
 7. Preserve all provider/webhook/audit evidence for the required retention period.
 
 ### Suspected compromise / hack
 
 1. Put the application into a controlled maintenance state at the reverse proxy and disable new deposits/withdrawals/PvP.
 2. Do not wipe the server. Snapshot disk/database/logs for forensics.
-3. Rotate `SESSION_SECRET`, Admin PIN, Telegram token, gateway API key/secret, webhook secret, KYC key according to a documented key-rotation plan. If the KYC encryption key must rotate, decrypt/re-encrypt under a controlled migration rather than simply replacing the key.
+3. Rotate `SESSION_SECRET`, Admin PIN, Telegram token, gateway API key/secret, webhook secret according to a documented key-rotation plan.
 4. Revoke active player/admin sessions.
 5. Compare database balances against append-only ledger history and gateway settlement data.
 6. Review audit logs, admin sessions, unusual balance adjustments, payout destinations, AML flags, and unexpected webhook IDs.
@@ -694,13 +676,12 @@ npm run check
 - Set `NODE_ENV=production`.
 - Set a 32+ character `SESSION_SECRET`.
 - Set a long random `ADMIN_PIN` and restrict Admin Hub network access.
-- Set a random 32-byte `KYC_STORAGE_KEY` encoded as 64 hex characters.
 - Configure actual merchant gateway paths and signing/payload normalization.
 - Configure and verify webhook signatures over the raw body.
 - Add real bKash/Nagad merchant display numbers in Admin Hub.
 - Verify Telegram group/chat/admin IDs.
 - Test provider sandbox deposit verification, payout, failure, duplicate callbacks, delayed callbacks, and reconciliation.
-- Verify all min/max/daily/AML/KYC limits with compliance counsel/operator policy.
+- Verify all min/max/daily/AML limits with compliance counsel/operator policy.
 - Run TLS-only behind a hardened reverse proxy.
 - Run backup + off-host copy + restore drill.
 - Run ledger/reconciliation tests before opening real-money traffic.
