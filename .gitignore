@@ -1,1 +1,9 @@
 node_modules/
+config.sh
+.env
+data/*.sqlite
+data/*.sqlite-*
+data/backups/
+npm-debug.log*
+.DS_Store
+

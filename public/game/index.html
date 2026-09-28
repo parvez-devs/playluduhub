@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>PvP Ludo — PLAY LUDU HUB</title><link rel="stylesheet" href="/game/style.css"></head><body>
+<header class="bar"><a href="/">← Lobby</a><b>🎲 PvP Ludo</b><span id="connection" class="muted">Connecting…</span></header>
+<main class="layout"><section class="boardWrap"><canvas id="board" width="750" height="750"></canvas></section><aside class="side">
+<section class="panel"><div class="players"><div id="p0" class="player"><b>Player A</b><div class="muted" data-name></div><div data-strikes></div></div><div id="p1" class="player"><b>Player B</b><div class="muted" data-name></div><div data-strikes></div></div></div><hr style="border-color:#233b58"><div class="row" style="justify-content:space-between"><div><div class="muted">Turn timer</div><div id="timer" class="big">--</div></div><div><div class="muted">Dice</div><div id="dice" class="big">⚀</div></div></div><br><button id="roll">Roll Dice</button><div id="status" class="muted" style="margin-top:10px">Waiting for match state…</div></section>
+<section class="panel"><b>Match chat</b><div id="log" class="log" style="margin:10px 0"></div><form id="chat" class="row"><input name="text" maxlength="250" placeholder="Message opponent"><button>Send</button></form></section>
+<section class="panel"><button id="dispute" style="background:#ff8794">Open dispute</button></section>
+</aside></main><script src="/game/game-engine.js"></script><script src="/game/pvp-client.js"></script></body></html>
+

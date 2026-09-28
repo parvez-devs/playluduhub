@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+# Copy to config.sh, chmod 600, source it before running. Never commit config.sh.
+export NODE_ENV='production'
+export PORT='8080'
+export PUBLIC_BASE_URL='https://example.com'
+export SESSION_SECRET='replace-with-at-least-32-random-bytes'
+export ADMIN_PIN='replace-with-a-long-random-pin'
+export ADMIN_LOCK_MS='1800000'
+export ADMIN_SESSION_TTL_MS='28800000'
+export TELEGRAM_BOT_TOKEN=''
+export TELEGRAM_CHAT_ID=''
+export TELEGRAM_ADMIN_IDS=''
+export PAYMENT_GATEWAY_API_KEY=''
+export PAYMENT_GATEWAY_SECRET=''
+export PAYMENT_GATEWAY_BASE_URL='https://merchant-gateway.example'
+export PAYMENT_WEBHOOK_SECRET=''
+export PAYMENT_VERIFY_PATH='/v1/deposits/verify'
+export PAYMENT_PAYOUT_PATH='/v1/payouts'
+export PAYMENT_RECONCILIATION_PATH='/v1/reconciliation/daily'
+export KYC_PROVIDER_KEY=''
+# 32-byte key as 64 hex chars. Required in production for encrypted KYC blobs.
+export KYC_STORAGE_KEY=''
+export DB_PATH='./data/db.sqlite'
+export BACKUP_DIR='./data/backups'
+export TRUST_PROXY='0'
+
