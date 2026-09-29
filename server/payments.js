@@ -56,10 +56,9 @@ function rejectDeposit(id,note='Rejected by admin',actor='admin'){
   return getDeposit(id);
 }
 
-function createWithdrawal(userId,{method,accountNumber,amount,sourceBucket='winnings'}){
+function createWithdrawal(userId,{method,accountNumber,amount,sourceBucket='cash'}){
   const c=getConfig(), paisa=Math.round(Number(amount)*100);
   if(!['bkash','nagad'].includes(method))throw err('INVALID_METHOD');
-  if(sourceBucket==='cash'&&!c.withdrawFromCash)throw err('CASH_WITHDRAW_DISABLED');
   if(sourceBucket==='bonus'&&!c.bonusWithdrawable)throw err('BONUS_WITHDRAW_DISABLED');
   if(!['winnings','cash','bonus'].includes(sourceBucket))throw err('INVALID_SOURCE');
   if(paisa<Math.round(c.minWithdraw*100)||paisa>Math.round(c.maxWithdraw*100))throw err('WITHDRAW_LIMIT');
