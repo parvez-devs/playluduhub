@@ -3,57 +3,87 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#08050d">
-  <title>PLAY LUDU HUB • Premium PvP Arena</title>
-  <link rel="stylesheet" href="/game/style.css?v=12-premium-1">
+  <meta name="theme-color" content="#080b12">
+  <title>PLAY LUDU HUB • V5 PvP Ludo</title>
+  <link rel="stylesheet" href="/game/style.css?v=v5-pvp-1">
 </head>
 <body>
-<div id="boot" class="boot"><div class="bootmark">PLH</div><b>PLAY LUDU HUB</b><span>PREMIUM PVP ARENA</span></div>
-<div class="game-app">
-  <header class="top">
-    <button id="back" class="icon" type="button" aria-label="Back">‹</button>
-    <div class="title"><strong>PLAY LUDU HUB</strong><span id="stakes">SECURE SERVER MATCH</span></div>
-    <span id="connection" class="connection">Connecting…</span>
-  </header>
+<div id="boot" class="boot" aria-label="Loading Play Ludu Hub">
+  <div class="loader-card">
+    <div class="dice-loader" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+    <h1>Play Ludu Hub</h1>
+    <p>Loading game…</p>
+    <div class="loading-track"><span></span></div>
+  </div>
+</div>
 
-  <section class="players">
-    <div id="p0" class="player red"><span class="dot"></span><div><b>PLAYER A</b><small data-name>Waiting…</small></div><span class="strike" data-strikes></span></div>
-    <div id="p1" class="player green"><span class="dot"></span><div><b>PLAYER B</b><small data-name>Waiting…</small></div><span class="strike" data-strikes></span></div>
-  </section>
+<div class="game">
+  <button id="exitBtn" class="exit-btn" type="button" aria-label="Exit match">×</button>
 
-  <main>
-    <div class="statusline">
-      <div><b id="status">Preparing match…</b><small id="hint">Authoritative game state loads from server</small></div>
-      <div class="timer" id="timerBox">
-        <svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18"></circle><circle id="timerArc" class="arc" cx="22" cy="22" r="18"></circle></svg>
-        <b id="timerText">--</b>
+  <div class="match-strip">
+    <div id="p0" class="player-pill blue">
+      <i></i><div><b>BLUE</b><small data-name>Player A</small></div><em data-strikes></em>
+    </div>
+    <div class="match-mid">
+      <span id="connection" class="connection">Connecting…</span>
+      <strong id="stakes">SECURE PVP</strong>
+      <small id="status">Loading match state…</small>
+    </div>
+    <div id="p1" class="player-pill green">
+      <i></i><div><b>GREEN</b><small data-name>Player B</small></div><em data-strikes></em>
+    </div>
+  </div>
+
+  <main class="stage">
+    <div id="board" class="board" aria-label="Ludo board">
+      <div id="boardArt" class="board-art" aria-hidden="true"></div>
+      <div id="tokenLayer" class="token-layer"></div>
+      <div id="waitingOverlay" class="waiting-overlay hidden">
+        <div class="waiting-spinner"></div>
+        <b>WAITING FOR OPPONENT</b>
+        <span>Your stake is locked safely until the match starts.</span>
       </div>
     </div>
 
-    <section class="board-shell" id="boardShell">
-      <canvas id="board" width="750" height="750" aria-label="Ludo board"></canvas>
-      <div class="board-badge">SERVER AUTHORITY</div>
-    </section>
-
-    <section id="console" class="controls">
-      <div class="turncard"><span id="turnDot" class="pulse"></span><div><b id="turnName">WAITING</b><small id="turnText">Opponent / state</small></div></div>
-      <button id="roll" class="dice" type="button" aria-label="Roll dice"><span id="dice">⚀</span><em>ROLL</em></button>
-      <div class="rightstat"><b id="strikeText">0 / 2</b><small>TIMEOUT</small></div>
-    </section>
-
-    <div class="arena-actions">
-      <button id="cancelWaiting" class="soft hidden" type="button">Cancel waiting match</button>
-      <button id="dispute" class="warn" type="button">Open dispute</button>
+    <div id="diceStation" class="dice-container shared blue">
+      <button id="roll" class="dice" type="button" disabled aria-label="Roll dice">
+        <div id="diceFace" class="dice-face" aria-hidden="true"></div>
+      </button>
+      <div class="turn-panel">
+        <span id="turnDot" class="turn-dot"></span>
+        <span class="turn-text">TURN</span>
+        <strong id="turnPlayer">WAITING</strong>
+        <span class="timer-chip"><b id="timer">--</b>s</span>
+      </div>
     </div>
 
-    <section class="chat-panel">
-      <div class="chat-head"><b>Match chat & events</b><span>live</span></div>
+    <div class="match-tools">
+      <span id="strikeText">Timeout 0 / 2</span>
+      <button id="cancelWaiting" class="tool hidden" type="button">Cancel waiting match</button>
+      <button id="dispute" class="tool danger" type="button">Dispute</button>
+    </div>
+
+    <details class="events">
+      <summary>Match chat & events</summary>
       <div id="log" class="log"></div>
-      <form id="chat" class="chat-form"><input name="text" maxlength="250" placeholder="Message opponent"><button type="submit">SEND</button></form>
-    </section>
+      <form id="chat" class="chat-form">
+        <input name="text" maxlength="250" placeholder="Message opponent">
+        <button type="submit">SEND</button>
+      </form>
+    </details>
   </main>
 </div>
-<script src="/game/game-engine.js?v=12-premium-1"></script>
-<script src="/game/pvp-client.js?v=12-premium-1"></script>
+
+<div id="resultOverlay" class="result-overlay hidden">
+  <div class="result-card">
+    <span>PLAY LUDU HUB</span>
+    <h2 id="resultTitle">MATCH FINISHED</h2>
+    <p id="resultText"></p>
+    <button id="resultBack" type="button">BACK TO ARENA</button>
+  </div>
+</div>
+
+<script src="/game/game-engine.js?v=v5-pvp-1"></script>
+<script src="/game/pvp-client.js?v=v5-pvp-1"></script>
 </body>
 </html>
