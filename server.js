@@ -17,6 +17,7 @@ function idemLookup(scope,actor,key){if(!key)throw status('IDEMPOTENCY_KEY_REQUI
 function idemSave(scope,actor,key,statusCode,body){db.prepare('UPDATE idempotency_keys SET response_status=?,response_json=? WHERE scope=? AND actor_id=? AND key=?').run(statusCode,JSON.stringify(body),scope,actor,key);}
 async function moneyAction(req,res,scope,actor,fn){const key=String(req.headers['idempotency-key']||'').slice(0,120), old=idemLookup(scope,actor,key); if(old)return json(res,old.status,old.body); try{const body=await fn(); idemSave(scope,actor,key,200,body); return json(res,200,body);}catch(e){db.prepare('DELETE FROM idempotency_keys WHERE scope=? AND actor_id=? AND key=? AND response_json IS NULL').run(scope,actor,key); throw e;}}
 function publicConfig(){const c=getConfig(); return {appNotice:c.appNotice,supportText:c.supportText,pvpEnabled:c.pvpEnabled,entryFee:c.entryFee,minBet:c.minBet,maxBet:c.maxBet,turnSeconds:c.turnSeconds,minDeposit:c.minDeposit,maxDeposit:c.maxDeposit,minWithdraw:c.minWithdraw,maxWithdraw:c.maxWithdraw,timeoutStrikes:c.timeoutStrikes,disconnectGraceSeconds:c.disconnectGraceSeconds};}
+function publicArena(){const rows=db.prepare("SELECT status,entry_fee,bet_amount,created_at,started_at FROM matches WHERE status IN ('active','waiting') ORDER BY CASE WHEN status='active' THEN 0 ELSE 1 END,COALESCE(started_at,created_at) DESC LIMIT 4").all();const activeCount=db.prepare("SELECT COUNT(*) n FROM matches WHERE status='active'").get().n;const waitingCount=db.prepare("SELECT COUNT(*) n FROM matches WHERE status='waiting'").get().n;return {activeCount,waitingCount,items:rows.map((m,i)=>({tableNumber:i+1,status:m.status,entryFee:m.entry_fee/100,betAmount:m.bet_amount/100,createdAt:m.created_at,startedAt:m.started_at}))};}
 const server=http.createServer(async(req,res)=>{
   const ip=clientIp(req); if(limited(`ip:${ip}`,150))return json(res,429,{error:'RATE_LIMIT'});
   try{
@@ -24,6 +25,7 @@ const server=http.createServer(async(req,res)=>{
     if(PROD){const proto=req.socket.encrypted?'https':(process.env.TRUST_PROXY==='1'?String(req.headers['x-forwarded-proto']||'').split(',')[0].trim():'http'); if(proto!=='https')return json(res,426,{error:'TLS_REQUIRED'});}
     if(pathname==='/api/health'&&req.method==='GET')return json(res,200,{ok:true,version:'12.0.0'});
     if(pathname==='/api/config'&&req.method==='GET')return json(res,200,publicConfig());
+    if(pathname==='/api/public/arena'&&req.method==='GET')return json(res,200,publicArena());
     if(pathname==='/api/payment-methods'&&req.method==='GET'){const kind=url.searchParams.get('kind')||'deposit'; return json(res,200,{items:db.prepare('SELECT id,kind,method,label,account_number FROM payment_methods WHERE enabled=1 AND kind=? ORDER BY created_at').all(kind)});}
     if(pathname==='/api/auth/signup'&&req.method==='POST'){if(limited(`auth:${ip}`,10))throw status('RATE_LIMIT',429); const u=await auth.signup(await readJson(req)); telegram.notify('account',u).catch(console.error); audit({actorType:'user',actorId:u.id,action:'signup',targetType:'user',targetId:u.id,ip}); return json(res,201,{user:u});}
     if(pathname==='/api/auth/login'&&req.method==='POST'){if(limited(`auth:${ip}`,10))throw status('RATE_LIMIT',429); const out=await auth.login(await readJson(req),{ip,userAgent:req.headers['user-agent']||''}); return json(res,200,{user:out.user},{'set-cookie':cookie('plh_session',out.token,{maxAge:auth.SESSION_MS,secure:PROD})});}
@@ -74,4 +76,3 @@ websocket.attach(server);
 server.listen(PORT,()=>console.log(`PLAY LUDU HUB v12 listening on :${PORT}`));
 process.on('SIGINT',()=>{telegram.stop();server.close(()=>process.exit(0));});
 process.on('SIGTERM',()=>{telegram.stop();server.close(()=>process.exit(0));});
-
