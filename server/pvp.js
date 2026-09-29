@@ -37,7 +37,7 @@ function settle(matchId,winnerId,reason,{allowDisputed=false}={}){
     ledger.adminPost(m.entry_fee*2,'admin_fee',matchId,'PvP entry fees');
     ledger.post(loserId,'locked',-m.bet_amount,'bet_loss',matchId,'PvP bet lost');
     ledger.post(winnerId,'locked',-m.bet_amount,'bet_win',matchId,'Winning stake released from escrow');
-    ledger.post(winnerId,'winnings',m.bet_amount*2,'bet_win',matchId,'PvP pot won');
+    ledger.post(winnerId,'cash',m.bet_amount*2,'bet_win',matchId,'PvP pot won — credited to main balance');
     ledger.assertWallet(winnerId); ledger.assertWallet(loserId);
     const st=rowState(m)||{}; st.phase='finished'; st.winnerId=winnerId; st.deadline=null; st.revision=(st.revision||0)+1;
     db.prepare("UPDATE matches SET status='finished',winner_id=?,end_reason=?,state_json=?,revision=?,ended_at=? WHERE id=?").run(winnerId,reason,JSON.stringify(st),st.revision,Date.now(),matchId); final=st;
