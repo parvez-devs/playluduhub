@@ -1,7 +1,7 @@
 'use strict';
 const http=require('http'); const fs=require('fs'); const path=require('path'); const {z}=require('zod');
 const {db,getConfig}=require('./server/db'); const auth=require('./server/auth'); const wallet=require('./server/wallet'); const pvp=require('./server/pvp'); const payments=require('./server/payments'); const aml=require('./server/aml'); const telegram=require('./server/telegram'); const admin=require('./server/admin'); const websocket=require('./server/websocket'); const {audit}=require('./server/audit');
-const {readJson,readRaw,json,clientIp,cookie,randomToken,safeFile}=require('./server/utils');
+const {readJson,json,clientIp,cookie,randomToken,safeFile}=require('./server/utils');
 const PORT=Number(process.env.PORT||8080), PUBLIC=path.join(__dirname,'public'), PROD=process.env.NODE_ENV==='production';
 const depositSchema=z.object({method:z.enum(['bkash','nagad']),amount:z.coerce.number().positive().max(100000000),transactionId:z.string().trim().min(3).max(120)});
 const withdrawalSchema=z.object({method:z.enum(['bkash','nagad']),accountNumber:z.string().trim().regex(/^\+?[0-9]{8,15}$/),amount:z.coerce.number().positive().max(100000000),sourceBucket:z.enum(['winnings','cash','bonus']).default('winnings')});
@@ -40,7 +40,6 @@ const server=http.createServer(async(req,res)=>{
     if(pathname==='/api/pvp/open'&&req.method==='GET'){needUser(req); return json(res,200,{items:pvp.listOpen()});}
     if(pathname==='/api/pvp/create'&&req.method==='POST'){const a=needUser(req),input=matchSchema.parse(await readJson(req)); return moneyAction(req,res,'pvp_create',a.user.id,async()=>({match:pvp.createMatch(a.user.id,input)}));}
     let m=pathname.match(/^\/api\/pvp\/([^/]+)\/(join|cancel|dispute)$/); if(m&&req.method==='POST'){const a=needUser(req),matchId=m[1],act=m[2],input=await readJson(req); if(act==='join')return moneyAction(req,res,'pvp_join',a.user.id,async()=>({match:pvp.joinMatch(a.user.id,matchId)})); if(act==='cancel'){const key=String(req.headers['idempotency-key']||''); return moneyAction(req,res,'pvp_cancel',a.user.id,async()=>{pvp.cancelWaiting(a.user.id,matchId);return{ok:true};});} if(act==='dispute'){const reason=z.string().trim().min(3).max(500).parse(input.reason); const r=pvp.dispute(a.user.id,matchId,reason); telegram.notify('dispute',{id:r.id,matchId,reason}).catch(console.error); return json(res,201,r);}}
-    if(pathname==='/api/payment/webhook'&&req.method==='POST'){const raw=await readRaw(req,512*1024), r=payments.processWebhook(raw,req.headers['x-webhook-signature']); return json(res,200,r);}
 
     if(pathname==='/api/admin/login'&&req.method==='POST'){if(limited(`adminlogin:${ip}`,8,10*60000))throw status('RATE_LIMIT',429); const body=await readJson(req), cookies=parseCookie(req), device=cookies.plh_admin_device||randomToken(24), out=admin.login(req,String(body.pin||''),device); const headers={'set-cookie':[cookie('plh_admin_device',device,{maxAge:365*24*3600000,secure:PROD}),cookie('plh_admin',out.token,{maxAge:Number(process.env.ADMIN_SESSION_TTL_MS||28800000),secure:PROD})]}; return json(res,200,{csrf:out.csrf,expiresAt:out.expiresAt},headers);}
     if(pathname==='/api/admin/dashboard'&&req.method==='GET'){needAdmin(req); return json(res,200,admin.dashboard());}
