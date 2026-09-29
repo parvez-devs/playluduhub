@@ -140,7 +140,7 @@
     clearInterval(timerTick);
     timerTick=setInterval(()=>{
       const text=state?.deadline?String(Math.max(0,Math.ceil((state.deadline-Date.now())/1000))):'--';
-      if(text!==lastTimerText){lastTimerText=text;const el=$('#timer');if(el)el.textContent=text;}
+      if(text!==lastTimerText){lastTimerText=text;const el=$('#timer'),chip=el?.closest('.timer-chip');if(el)el.textContent=text;if(chip){const n=Number(text);chip.classList.toggle('warning',Number.isFinite(n)&&n<=5&&n>3);chip.classList.toggle('danger',Number.isFinite(n)&&n<=3);}}
     },250);
   }
 
