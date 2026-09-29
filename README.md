@@ -20,6 +20,22 @@ The current v12 frontend has been upgraded using the uploaded **v11 Premium Merg
 
 The old v11 client-side/local game logic is **not** used for real-money PvP settlement. The v12 server remains the source of truth.
 
+
+### V5 game replacement
+
+The previous v12 canvas game screen has been removed. The current `/game` frontend is a vanilla-JS server-authoritative adaptation of the operator-supplied `play-ludu-hub-termux-v5-premium.zip` game presentation.
+
+- 15×15 LibreLudo-style board geometry;
+- opposite **Blue + Green** seats for 2-player PvP;
+- pawn/pin-style token presentation;
+- V5 playable-token bounce and rotating-dot indicator;
+- shared premium dice station and rolling animation;
+- waiting-match overlay, timeout display, chat, dispute and cancel controls;
+- no React/Vite runtime/build step is required on the production server;
+- uploaded local RNG/bot/save-state logic is not authoritative for paid PvP; v12 Node/WebSocket logic remains authoritative.
+
+A source/license notice is kept at `public/game/V5_SOURCE_NOTICE.txt`.
+
 ---
 
 ## 1. Current production flow
