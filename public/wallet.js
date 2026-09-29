@@ -1,3 +1,4 @@
+(()=>{
 'use strict';
 const $=s=>document.querySelector(s), money=v=>`৳${Number(v||0).toFixed(2)}`, formObj=f=>Object.fromEntries(new FormData(f).entries());
 let depositMethods=[];
@@ -11,3 +12,4 @@ $('#depositMethod').addEventListener('change',renderDepositNumbers);
 document.querySelectorAll('.amount-chip').forEach(b=>b.addEventListener('click',()=>{$('#depositAmount').value=b.dataset.amount;}));
 $('#depositForm').addEventListener('submit',async e=>{e.preventDefault();const x=formObj(e.target);x.amount=Number(x.amount);try{await PLH.api('/api/deposits',{method:'POST',headers:{'idempotency-key':PLH.idem()},body:x});PLH.toast('Deposit submitted. Admin will verify it manually.');e.target.reset();await loadWalletData();}catch(err){PLH.toast(err.message,true);}});
 $('#withdrawForm').addEventListener('submit',async e=>{e.preventDefault();const x=formObj(e.target);x.amount=Number(x.amount);try{await PLH.api('/api/withdrawals',{method:'POST',headers:{'idempotency-key':PLH.idem()},body:x});PLH.toast('Withdrawal requested. Admin will send it manually and confirm Paid.');e.target.reset();await PLH.refreshMe();}catch(err){PLH.toast(err.message,true);}});
+})();
