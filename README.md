@@ -38,6 +38,18 @@ A source/license notice is kept at `public/game/V5_SOURCE_NOTICE.txt`.
 
 ---
 
+## Premium production UI
+
+The current branch includes a final visual/UX production pass across the player site, live game, wallet, PvP lobby and Admin Hub:
+
+- one consistent dark premium design system across all surfaces;
+- clearer hierarchy, spacing, responsive states and focus-visible accessibility;
+- lightweight loading/busy states to prevent accidental duplicate form submissions;
+- human-readable client error messages for common account, wallet and PvP conditions;
+- polished game connection/turn/timer/result states without reintroducing heavy mobile effects;
+- clean game CSS with the prior malformed/legacy animation rules removed;
+- cache-versioned frontend assets so Termux/Chrome receives the current UI after updates.
+
 ## Performance / stability pass
 
 The current branch includes a mobile/Termux optimization and reliability pass:
