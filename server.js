@@ -22,8 +22,8 @@ const server=http.createServer(async(req,res)=>{
   const ip=clientIp(req); if(limited(`ip:${ip}`,150))return json(res,429,{error:'RATE_LIMIT'});
   try{
     const url=new URL(req.url,`http://${req.headers.host||'localhost'}`), pathname=url.pathname;
-    if(PROD){const proto=req.socket.encrypted?'https':(process.env.TRUST_PROXY==='1'?String(req.headers['x-forwarded-proto']||'').split(',')[0].trim():'http'); if(proto!=='https')return json(res,426,{error:'TLS_REQUIRED'});}
     if(pathname==='/api/health'&&req.method==='GET')return json(res,200,{ok:true,version:'12.0.0'});
+    if(PROD){const proto=req.socket.encrypted?'https':(process.env.TRUST_PROXY==='1'?String(req.headers['x-forwarded-proto']||'').split(',')[0].trim():'http'); if(proto!=='https')return json(res,426,{error:'TLS_REQUIRED'});}
     if(pathname==='/api/config'&&req.method==='GET')return json(res,200,publicConfig());
     if(pathname==='/api/public/arena'&&req.method==='GET')return json(res,200,publicArena());
     if(pathname==='/api/payment-methods'&&req.method==='GET'){const kind=url.searchParams.get('kind')||'deposit'; return json(res,200,{items:db.prepare('SELECT id,kind,method,label,account_number FROM payment_methods WHERE enabled=1 AND kind=? ORDER BY created_at').all(kind)});}
