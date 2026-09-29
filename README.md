@@ -38,6 +38,26 @@ A source/license notice is kept at `public/game/V5_SOURCE_NOTICE.txt`.
 
 ---
 
+## Performance / stability pass
+
+The current branch includes a mobile/Termux optimization and reliability pass:
+
+- game tokens move with GPU-friendly `translate3d` instead of repeated `left/top` layout writes;
+- playable-token indicator uses one lightweight rotating indicator instead of many independent animations;
+- overlapping tokens receive small stack offsets so pieces do not hide behind one another;
+- dice/move actions are client-debounced to prevent accidental double sends;
+- WebSocket UI renders are coalesced with `requestAnimationFrame`;
+- the visible timer only updates when its displayed second changes;
+- low-memory / low-core Android devices automatically use a lighter visual mode;
+- session `last_seen_at` is throttled to one SQLite write per minute instead of every authenticated request;
+- local/development SQLite uses WAL + `synchronous=NORMAL`; production keeps `FULL` durability;
+- WebSocket heartbeat cleans dead connections;
+- disconnect loss uses configurable `disconnectGraceSeconds` (default 15 seconds);
+- timeout strikes are restored after reconnect;
+- waiting matches auto-cancel and unlock funds after configurable `waitingMatchTtlMinutes` (default 60 minutes);
+- self-excluded players remain blocked from new gaming/deposits but may still request withdrawal of existing funds;
+- deposit transaction IDs cannot be replayed after a rejected request.
+
 ## 1. Current production flow
 
 ### Account
@@ -520,6 +540,8 @@ Admin Hub can control:
 - `withdrawFromCash`
 - `amlThreshold`
 - `disconnectLoss`
+- `disconnectGraceSeconds`
+- `waitingMatchTtlMinutes`
 - `appNotice`
 - `supportText`
 
