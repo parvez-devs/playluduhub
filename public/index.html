@@ -1,13 +1,204 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>PLAY LUDU HUB</title><link rel="stylesheet" href="/style.css"></head><body>
-<header class="top"><div class="brand">🎲 PLAY LUDU HUB <span class="pill">v12</span></div><div class="row"><span id="who" class="muted"></span><button id="logout" class="secondary hidden">Logout</button></div></header>
-<main class="wrap">
-<section id="auth" class="auth grid"><div class="card span6"><h2>Login</h2><p class="muted">Approved accounts can sign in with username, phone or email.</p><form id="loginForm"><div class="field"><label>Username / phone / email</label><input name="login" required></div><div class="field"><label>Password</label><input name="password" type="password" required></div><br><button>Login</button></form></div><div class="card span6"><h2>Create account</h2><form id="signupForm"><div class="row"><div class="field"><label>Name</label><input name="name" required></div><div class="field"><label>Username</label><input name="username" required></div></div><div class="row"><div class="field"><label>Phone</label><input name="phone" required></div><div class="field"><label>Email</label><input name="email" type="email" required></div></div><div class="field"><label>Password (10+ characters)</label><input name="password" type="password" minlength="10" required></div><br><button>Create pending account</button></form></div></section>
-<section id="app" class="hidden"><div id="notice" class="notice hidden"></div><div class="grid">
-<div class="card span8"><h2>Wallet</h2><div class="wallet"><div class="balance"><span class="muted">Cash</span><b id="cash">৳0</b></div><div class="balance"><span class="muted">Winnings</span><b id="wins">৳0</b></div><div class="balance"><span class="muted">Locked</span><b id="locked">৳0</b></div><div class="balance"><span class="muted">Bonus</span><b id="bonus">৳0</b></div></div></div>
-<div class="card span4"><h3>Account</h3><div id="accountInfo" class="muted"></div><div class="row" style="margin-top:12px"><button id="selfExclude" class="danger">Self-exclude</button><button id="coolOff" class="secondary">24h cool-off</button></div></div>
-<div class="card span6"><h2>Deposit</h2><form id="depositForm"><div class="field"><label>Merchant method</label><select name="method" id="depositMethod"><option value="bkash">bKash</option><option value="nagad">Nagad</option></select></div><div id="depositNumbers" class="muted"></div><div class="row"><div class="field"><label>Amount (৳)</label><input name="amount" type="number" min="1" step="0.01" required></div><div class="field"><label>Transaction ID</label><input name="transactionId" required></div></div><br><button>Submit deposit</button></form><div id="depositHistory" class="list" style="margin-top:12px"></div></div>
-<div class="card span6"><h2>Withdraw</h2><form id="withdrawForm"><div class="row"><div class="field"><label>Method</label><select name="method" id="withdrawMethod"><option value="bkash">bKash</option><option value="nagad">Nagad</option></select></div><div class="field"><label>Source</label><select name="sourceBucket"><option value="winnings">Winnings</option><option value="cash">Cash (if enabled)</option><option value="bonus">Bonus (if enabled)</option></select></div></div><div class="row"><div class="field"><label>Account number</label><input name="accountNumber" required></div><div class="field"><label>Amount (৳)</label><input name="amount" type="number" min="1" step="0.01" required></div></div><br><button>Request payout</button></form><div id="withdrawHistory" class="list" style="margin-top:12px"></div></div>
-<div class="card span12"><div class="row" style="justify-content:space-between"><div><h2>PvP Lobby</h2><div class="muted">Server-authoritative real-time matches.</div></div><button id="refreshLobby" class="secondary">Refresh</button></div><form id="createMatchForm" class="row" style="margin:12px 0"><div class="field"><label>Entry fee</label><input id="entryFee" name="entryFee" type="number" readonly></div><div class="field"><label>Bet amount</label><input name="betAmount" type="number" min="1" step="0.01" required></div><div style="align-self:end"><button>Create match</button></div></form><div id="lobby" class="list"></div></div>
-</div></section></main><div id="toast" class="toast hidden"></div>
-<script src="/app.js"></script><script src="/wallet.js"></script><script src="/pvp-lobby.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#08050d">
+  <title>PLAY LUDU HUB</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="shell">
+  <header id="topbar" class="topbar hidden">
+    <button id="menuBtn" class="iconbtn" type="button" aria-label="Open menu">☰</button>
+    <div class="brand">
+      <span class="brandmark">◆</span>
+      <span>PLAY LUDU HUB<small>PREMIUM PVP ARENA</small></span>
+    </div>
+    <button class="wallet-mini" type="button" data-page-target="wallet"><small>Cash</small><b id="topBalance">৳0.00</b></button>
+  </header>
 
+  <div id="backdrop" class="drawer-backdrop"></div>
+  <aside id="drawer" class="drawer" aria-label="Player menu">
+    <div class="drawer-head">
+      <div id="drawerAvatar" class="bigavatar">P</div>
+      <div><h2 id="drawerName">Player</h2><p id="drawerUser">@player</p></div>
+    </div>
+    <div class="drawer-list">
+      <button type="button" data-page-target="home">🎮 <span>Play PvP</span> ›</button>
+      <button type="button" data-page-target="wallet">◈ <span>Wallet / Payments</span> ›</button>
+      <button type="button" data-page-target="profile">◎ <span>Profile & Safety</span> ›</button>
+      <button type="button" id="drawerLogout">↪ <span>Logout</span> ›</button>
+    </div>
+    <div class="drawer-note">Manual bKash/Nagad payments.<br><small>Deposits are verified and withdrawals are marked paid by authorized admin.</small></div>
+  </aside>
+
+  <main id="main">
+    <section id="auth" class="auth-shell">
+      <div class="auth-grid">
+        <article class="auth-card">
+          <div class="auth-logo">◆</div>
+          <span class="eyebrow">WELCOME BACK</span>
+          <h1>Enter the Arena</h1>
+          <p>Approved players can sign in using username, phone number or email.</p>
+          <form id="loginForm">
+            <label>Username / Phone / Email</label>
+            <input name="login" required autocomplete="username" placeholder="username, phone or email">
+            <label>Password</label>
+            <input name="password" required type="password" autocomplete="current-password" placeholder="••••••••••">
+            <button class="cta full" type="submit">LOGIN / লগইন</button>
+          </form>
+        </article>
+
+        <article class="auth-card secondary-card">
+          <span class="eyebrow">NEW PLAYER</span>
+          <h2>Create Account</h2>
+          <p>New accounts stay pending until an authorized admin approves them.</p>
+          <form id="signupForm">
+            <div class="two">
+              <div><label>Name</label><input name="name" required maxlength="60"></div>
+              <div><label>Username</label><input name="username" required minlength="3" maxlength="30"></div>
+            </div>
+            <div class="two">
+              <div><label>Phone</label><input name="phone" required></div>
+              <div><label>Email</label><input name="email" type="email" required></div>
+            </div>
+            <label>Password</label>
+            <input name="password" type="password" minlength="10" required placeholder="10+ characters">
+            <button class="ghost full" type="submit">CREATE PENDING ACCOUNT</button>
+          </form>
+        </article>
+      </div>
+    </section>
+
+    <section id="app" class="hidden">
+      <div id="notice" class="notice hidden"></div>
+
+      <section data-page="home" class="page active">
+        <section class="hero">
+          <div class="hero-copy">
+            <span class="eyebrow">SERVER-AUTHORITATIVE LUDO</span>
+            <h1>Welcome, <span id="heroName">Player</span></h1>
+            <p>Real-time 2-player PvP with server dice, server turn control, escrowed stakes and automatic settlement.</p>
+            <div class="hero-actions">
+              <button class="cta" type="button" data-jump-create>CREATE MATCH</button>
+              <button class="ghost" type="button" data-page-target="wallet">WALLET</button>
+            </div>
+          </div>
+          <div id="heroAvatar" class="hero-avatar fallback">P</div>
+        </section>
+
+        <div class="stats-grid four">
+          <div class="card stat"><small>CASH</small><strong id="cash">৳0.00</strong></div>
+          <div class="card stat"><small>WINNINGS</small><strong id="wins">৳0.00</strong></div>
+          <div class="card stat"><small>LOCKED</small><strong id="locked">৳0.00</strong></div>
+          <div class="card stat"><small>BONUS</small><strong id="bonus">৳0.00</strong></div>
+        </div>
+
+        <div class="section-title"><div><span class="eyebrow">LIVE ARENA</span><h2>PvP Lobby</h2></div><button id="refreshLobby" class="mini ghost" type="button">Refresh</button></div>
+
+        <article class="game-card featured" id="createCard">
+          <div class="preview html5-preview"><span>HTML5 + WEBSOCKET</span><b>PRO PVP LUDO</b><em>10s turn control • secure escrow</em></div>
+          <form id="createMatchForm" class="match-create">
+            <div><label>Entry fee</label><input id="entryFee" name="entryFee" type="number" readonly></div>
+            <div><label>Bet amount</label><input name="betAmount" type="number" min="1" step="0.01" required placeholder="100"></div>
+            <button class="cta" type="submit">CREATE MATCH</button>
+          </form>
+        </article>
+
+        <div id="lobby" class="match-list"></div>
+      </section>
+
+      <section data-page="wallet" class="page">
+        <div class="wallet-head">
+          <div><small>AVAILABLE CASH</small><strong id="walletHeroCash">৳0.00</strong><span>Manual payment wallet</span></div>
+          <span class="wallet-glyph">◈</span>
+        </div>
+
+        <div class="wallet-summary">
+          <div><small>Total deposited</small><b id="totalDeposited">৳0.00</b></div>
+          <div><small>Total withdrawn</small><b id="totalWithdrawn">৳0.00</b></div>
+        </div>
+
+        <div class="wallet-columns">
+          <article class="card">
+            <div class="section-title compact"><div><span class="eyebrow">MANUAL VERIFY</span><h2>Deposit</h2></div><span class="status-chip">Telegram/Admin</span></div>
+            <form id="depositForm">
+              <label>Merchant method</label>
+              <select name="method" id="depositMethod"><option value="bkash">bKash</option><option value="nagad">Nagad</option></select>
+              <div id="depositNumbers" class="payment-numbers"></div>
+              <label>Amount (৳)</label>
+              <input name="amount" id="depositAmount" type="number" min="1" step="0.01" required placeholder="500">
+              <div class="chips"><button type="button" class="amount-chip" data-amount="100">৳100</button><button type="button" class="amount-chip" data-amount="200">৳200</button><button type="button" class="amount-chip" data-amount="500">৳500</button><button type="button" class="amount-chip" data-amount="1000">৳1000</button></div>
+              <label>Transaction ID</label>
+              <input name="transactionId" required maxlength="120" placeholder="bKash/Nagad TxID">
+              <button class="cta full" type="submit">SUBMIT DEPOSIT</button>
+              <p class="form-note">Send money first, then submit the exact TxID. Balance is credited only after admin marks it Verified.</p>
+            </form>
+            <div class="section-title compact history-title"><h3>Recent deposits</h3></div>
+            <div id="depositHistory" class="request-list"></div>
+          </article>
+
+          <article class="card">
+            <div class="section-title compact"><div><span class="eyebrow">MANUAL PAYOUT</span><h2>Withdraw</h2></div><span class="status-chip">Locked first</span></div>
+            <form id="withdrawForm">
+              <div class="two">
+                <div><label>Method</label><select name="method" id="withdrawMethod"><option value="bkash">bKash</option><option value="nagad">Nagad</option></select></div>
+                <div><label>Source</label><select name="sourceBucket"><option value="winnings">Winnings</option><option value="cash">Cash (if enabled)</option><option value="bonus">Bonus (if enabled)</option></select></div>
+              </div>
+              <label>Account number</label>
+              <input name="accountNumber" required inputmode="numeric" placeholder="01XXXXXXXXX">
+              <label>Amount (৳)</label>
+              <input name="amount" type="number" min="1" step="0.01" required placeholder="200">
+              <button class="cta full" type="submit">REQUEST WITHDRAWAL</button>
+              <p class="form-note">Requested funds move to Locked. Admin sends the money manually and then marks the request Paid.</p>
+            </form>
+            <div class="section-title compact history-title"><h3>Recent withdrawals</h3></div>
+            <div id="withdrawHistory" class="request-list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section data-page="profile" class="page">
+        <article class="card profile-card">
+          <div class="profile-head">
+            <div id="profileAvatar" class="profile-avatar fallback">P</div>
+            <div><span class="eyebrow">PLAYER ACCOUNT</span><h2 id="profileName">Player</h2><p id="profileUser">@player</p><div id="accountInfo" class="muted"></div></div>
+          </div>
+          <form id="profileForm" class="profile-form">
+            <div class="two">
+              <div><label>Display name</label><input name="displayName" placeholder="Optional display name"></div>
+              <div><label>Avatar URL</label><input name="avatar" type="url" placeholder="https://..."></div>
+            </div>
+            <button class="ghost" type="submit">SAVE PROFILE</button>
+          </form>
+        </article>
+
+        <article class="card">
+          <span class="eyebrow">RESPONSIBLE PLAY</span>
+          <h2>Safety controls</h2>
+          <p class="form-note">These controls are intentionally restrictive. Self-exclusion blocks gaming/deposit activity; cool-off temporarily blocks new gaming/deposit activity.</p>
+          <div class="safety-actions">
+            <button id="coolOff" class="ghost" type="button">24H COOL-OFF</button>
+            <button id="selfExclude" class="danger" type="button">SELF-EXCLUDE</button>
+          </div>
+        </article>
+
+        <button id="logout" class="logout-btn" type="button">LOGOUT</button>
+      </section>
+    </section>
+  </main>
+
+  <nav id="bottomNav" class="bottom hidden">
+    <button type="button" data-page-target="home" class="active">⌂<span>Arena</span></button>
+    <button type="button" data-page-target="wallet">◈<span>Wallet</span></button>
+    <button type="button" data-page-target="profile">◎<span>Profile</span></button>
+  </nav>
+
+  <div id="toast" class="toast hidden"></div>
+</div>
+<script src="/app.js"></script>
+<script src="/wallet.js"></script>
+<script src="/pvp-lobby.js"></script>
+</body>
+</html>
