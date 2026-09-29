@@ -1,0 +1,18 @@
+(()=>{
+'use strict';
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const board=()=>'<div class="mini-ludo" aria-hidden="true"><span class="blue"></span><span class="path"></span><span class="green"></span><span class="path"></span><span class="center"></span><span class="path"></span><span class="red"></span><span class="path"></span><span class="yellow"></span></div>';
+const money=v=>`৳${Number(v||0).toFixed(2)}`;
+const fmtTime=ms=>{const s=Math.max(0,Math.floor(ms/1000)),m=Math.floor(s/60),r=s%60;return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`;};
+let matches=[];
+function tile(m,i){const started=Number(m.startedAt||m.createdAt||Date.now());return `<article class="live-tile" data-status="${esc(m.status)}" data-started="${started}">${board()}<div class="live-meta"><b>TABLE #${esc(m.tableNumber||i+1)}</b><span class="live-status">${m.status==='active'?'LIVE':'WAITING'}</span></div><div class="live-money"><div><small>Bet</small><strong>${money(m.betAmount)}</strong></div><div><small>Entry</small><strong>${money(m.entryFee)}</strong></div></div><div class="live-clock">${m.status==='active'?'Elapsed':'Waiting'} <span data-clock>${fmtTime(Date.now()-started)}</span></div></article>`;}
+function standby(){return Array.from({length:4},(_,i)=>`<article class="live-tile" data-status="standby">${board()}<div class="live-meta"><b>TABLE #${i+1}</b><span class="live-status">STANDBY</span></div><div class="live-money"><div><small>Bet</small><strong>—</strong></div><div><small>Entry</small><strong>—</strong></div></div><div class="live-clock">Waiting for a live match</div></article>`).join('');}
+function render(){const box=$('#publicLiveMatches');if(!box)return;box.innerHTML=matches.length?matches.slice(0,4).map(tile).join(''):standby();const count=$('#publicLiveCount');if(count)count.textContent=matches.filter(x=>x.status==='active').length;}
+async function load(){try{const r=await fetch('/api/public/arena',{headers:{accept:'application/json'}});if(!r.ok)throw new Error('arena');const d=await r.json();matches=Array.isArray(d.items)?d.items:[];render();const active=$('#publicActiveTotal'),waiting=$('#publicWaitingTotal');if(active)active.textContent=String(d.activeCount||0);if(waiting)waiting.textContent=String(d.waitingCount||0);}catch{matches=[];render();}}
+function tick(){document.querySelectorAll('.live-tile[data-started]').forEach(el=>{const span=el.querySelector('[data-clock]');if(span)span.textContent=fmtTime(Date.now()-Number(el.dataset.started||Date.now()));});}
+function toAuth(){document.querySelector('#auth')?.scrollIntoView({behavior:document.documentElement.classList.contains('lite')?'auto':'smooth',block:'start'});setTimeout(()=>document.querySelector('#loginForm input[name="login"]')?.focus({preventScroll:true}),350);}
+function toSignup(){document.querySelector('#auth')?.scrollIntoView({behavior:document.documentElement.classList.contains('lite')?'auto':'smooth',block:'start'});setTimeout(()=>document.querySelector('#signupForm input[name="name"]')?.focus({preventScroll:true}),350);}
+$('#landingPlay')?.addEventListener('click',toAuth);$('#landingLogin')?.addEventListener('click',toAuth);$('#landingCreate')?.addEventListener('click',toSignup);$('#landingExplore')?.addEventListener('click',()=>$('#landingLive')?.scrollIntoView({behavior:'smooth',block:'start'}));
+window.addEventListener('plh:me',()=>$('#landing')?.classList.add('hidden'));
+load();setInterval(()=>{if(!document.hidden&&!$('#landing')?.classList.contains('hidden'))load();},10000);setInterval(tick,1000);
+})();
