@@ -1,8 +1,59 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>PvP Ludo — PLAY LUDU HUB</title><link rel="stylesheet" href="/game/style.css"></head><body>
-<header class="bar"><a href="/">← Lobby</a><b>🎲 PvP Ludo</b><span id="connection" class="muted">Connecting…</span></header>
-<main class="layout"><section class="boardWrap"><canvas id="board" width="750" height="750"></canvas></section><aside class="side">
-<section class="panel"><div class="players"><div id="p0" class="player"><b>Player A</b><div class="muted" data-name></div><div data-strikes></div></div><div id="p1" class="player"><b>Player B</b><div class="muted" data-name></div><div data-strikes></div></div></div><hr style="border-color:#233b58"><div class="row" style="justify-content:space-between"><div><div class="muted">Turn timer</div><div id="timer" class="big">--</div></div><div><div class="muted">Dice</div><div id="dice" class="big">⚀</div></div></div><br><button id="roll">Roll Dice</button><div id="status" class="muted" style="margin-top:10px">Waiting for match state…</div></section>
-<section class="panel"><b>Match chat</b><div id="log" class="log" style="margin:10px 0"></div><form id="chat" class="row"><input name="text" maxlength="250" placeholder="Message opponent"><button>Send</button></form></section>
-<section class="panel"><button id="dispute" style="background:#ff8794">Open dispute</button></section>
-</aside></main><script src="/game/game-engine.js"></script><script src="/game/pvp-client.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#08050d">
+  <title>PLAY LUDU HUB • Premium PvP Arena</title>
+  <link rel="stylesheet" href="/game/style.css">
+</head>
+<body>
+<div id="boot" class="boot"><div class="bootmark">PLH</div><b>PLAY LUDU HUB</b><span>PREMIUM PVP ARENA</span></div>
+<div class="game-app">
+  <header class="top">
+    <button id="back" class="icon" type="button" aria-label="Back">‹</button>
+    <div class="title"><strong>PLAY LUDU HUB</strong><span id="stakes">SECURE SERVER MATCH</span></div>
+    <span id="connection" class="connection">Connecting…</span>
+  </header>
 
+  <section class="players">
+    <div id="p0" class="player red"><span class="dot"></span><div><b>PLAYER A</b><small data-name>Waiting…</small></div><span class="strike" data-strikes></span></div>
+    <div id="p1" class="player green"><span class="dot"></span><div><b>PLAYER B</b><small data-name>Waiting…</small></div><span class="strike" data-strikes></span></div>
+  </section>
+
+  <main>
+    <div class="statusline">
+      <div><b id="status">Preparing match…</b><small id="hint">Authoritative game state loads from server</small></div>
+      <div class="timer" id="timerBox">
+        <svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18"></circle><circle id="timerArc" class="arc" cx="22" cy="22" r="18"></circle></svg>
+        <b id="timerText">--</b>
+      </div>
+    </div>
+
+    <section class="board-shell" id="boardShell">
+      <canvas id="board" width="750" height="750" aria-label="Ludo board"></canvas>
+      <div class="board-badge">SERVER AUTHORITY</div>
+    </section>
+
+    <section id="console" class="controls">
+      <div class="turncard"><span id="turnDot" class="pulse"></span><div><b id="turnName">WAITING</b><small id="turnText">Opponent / state</small></div></div>
+      <button id="roll" class="dice" type="button" aria-label="Roll dice"><span id="dice">⚀</span><em>ROLL</em></button>
+      <div class="rightstat"><b id="strikeText">0 / 2</b><small>TIMEOUT</small></div>
+    </section>
+
+    <div class="arena-actions">
+      <button id="cancelWaiting" class="soft hidden" type="button">Cancel waiting match</button>
+      <button id="dispute" class="warn" type="button">Open dispute</button>
+    </div>
+
+    <section class="chat-panel">
+      <div class="chat-head"><b>Match chat & events</b><span>live</span></div>
+      <div id="log" class="log"></div>
+      <form id="chat" class="chat-form"><input name="text" maxlength="250" placeholder="Message opponent"><button type="submit">SEND</button></form>
+    </section>
+  </main>
+</div>
+<script src="/game/game-engine.js"></script>
+<script src="/game/pvp-client.js"></script>
+</body>
+</html>
