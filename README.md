@@ -5,6 +5,19 @@
 > Current payment mode: **MANUAL**  
 > No bKash/Nagad gateway API, API key, payout API, or payment webhook is required.
 
+### Premium UI merge
+
+The current v12 frontend has been upgraded using the uploaded **v11 Premium Merge** as the visual/UX reference while keeping the v12 backend contracts intact.
+
+- premium dark mobile player shell with drawer + bottom navigation;
+- premium wallet/deposit/withdraw cards for manual bKash/Nagad operation;
+- premium PvP lobby and match cards;
+- premium PvP arena with boot splash, classic board colors, large dice, circular timer, glowing legal-token indicators, chat/events and waiting-match cancellation;
+- premium responsive Admin Control Center;
+- money, dice, moves, timeout decisions and settlement remain server-authoritative.
+
+The old v11 client-side/local game logic is **not** used for real-money PvP settlement. The v12 server remains the source of truth.
+
 ---
 
 ## 1. Current production flow
