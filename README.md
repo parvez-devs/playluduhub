@@ -4,6 +4,8 @@
 
 > Current payment mode: **MANUAL**  
 > No bKash/Nagad gateway API, API key, payout API, or payment webhook is required.
+>
+> **Balance rule:** New PvP winnings are credited directly to the player's **Main/Cash Balance**. The separate winnings bucket is kept only for legacy compatibility.
 
 ### Premium UI merge
 
@@ -83,7 +85,7 @@ Server starts authoritative Ludo
 Winner decided by server
   ↓
 Admin revenue = ৳10
-Winner winnings = ৳200
+Winner main/cash balance += ৳200
 Loser receives = ৳0
 ```
 
@@ -94,7 +96,7 @@ Settlement is atomic. If the financial transaction fails, the database transacti
 ```text
 Player requests withdrawal
   ↓
-source balance → lockedBalance
+Main/Cash Balance → lockedBalance
   ↓
 Telegram receives number + amount
   ↓
@@ -107,7 +109,7 @@ totalWithdrawn is updated
 ledger is written
 ```
 
-If admin presses `Reject`, the full locked amount returns to the original source balance.
+If admin presses `Reject`, the full locked amount returns to the original source balance. New withdrawals default to Main/Cash Balance.
 
 If a withdrawal fee is configured:
 
@@ -157,7 +159,8 @@ All money is stored as **integer paisa**.
 Wallet buckets:
 
 - `cash_balance` — verified deposited money
-- `winnings_balance` — PvP winnings
+- `cash_balance` — main balance: verified deposits + new PvP winnings
+- `winnings_balance` — legacy compatibility bucket; new PvP wins are no longer credited here
 - `locked_balance` — match/withdrawal escrow
 - `bonus_balance` — promotional balance
 - `total_deposited`
