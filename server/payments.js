@@ -21,7 +21,7 @@ function createDeposit(userId,{method,amount,transactionId}){
   if(paisa<Math.round(c.minDeposit*100)||paisa>Math.round(c.maxDeposit*100))throw err('DEPOSIT_LIMIT');
   const txid=String(transactionId||'').trim();
   if(!txid)throw err('TRANSACTION_ID_REQUIRED');
-  const duplicate=db.prepare("SELECT id,status FROM deposits WHERE method=? AND transaction_id=? AND status!='rejected' LIMIT 1").get(method,txid);
+  const duplicate=db.prepare('SELECT id,status,method FROM deposits WHERE transaction_id=? LIMIT 1').get(txid);
   if(duplicate)throw err('DUPLICATE_TRANSACTION_ID');
   const id=uid('dep');
   aml.checkDeposit(userId,paisa,id);
@@ -62,9 +62,8 @@ function createWithdrawal(userId,{method,accountNumber,amount,sourceBucket='cash
   if(sourceBucket==='bonus'&&!c.bonusWithdrawable)throw err('BONUS_WITHDRAW_DISABLED');
   if(!['winnings','cash','bonus'].includes(sourceBucket))throw err('INVALID_SOURCE');
   if(paisa<Math.round(c.minWithdraw*100)||paisa>Math.round(c.maxWithdraw*100))throw err('WITHDRAW_LIMIT');
-  const u=db.prepare('SELECT self_excluded FROM users WHERE id=?').get(userId);
+  const u=db.prepare('SELECT id FROM users WHERE id=?').get(userId);
   if(!u)throw err('USER_NOT_FOUND');
-  if(u.self_excluded)throw err('SELF_EXCLUDED');
   aml.checkWithdrawal(userId,paisa);
   const fee=Math.round(paisa*(Number(c.withdrawalFeePercent||0)/100)), id=uid('wd');
   db.transaction(()=>{
