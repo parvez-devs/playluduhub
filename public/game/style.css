@@ -7,7 +7,7 @@
   --green:#049645;
   --yellow:#ffde15;
   --muted:#aeb6cf;
-  --board-side:min(84vw,68dvh,580px);
+  --board-side:min(94vw,68dvh,620px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%;background:#080b12;color:#fff;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;overscroll-behavior:none}
@@ -45,9 +45,9 @@ button{cursor:pointer}
 }
 .player-pill{
   min-width:0;display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:12px;
-  background:rgba(8,11,18,.78);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(10px)
+  background:rgba(8,11,18,.78);border:1px solid rgba(255,255,255,.1);
 }
-.player-pill.active{box-shadow:0 0 17px color-mix(in srgb,var(--pc) 32%,transparent);border-color:color-mix(in srgb,var(--pc) 70%,#fff 10%)}
+.player-pill.active{box-shadow:0 0 12px rgba(80,150,255,.22);border-color:var(--pc)}
 .player-pill.blue{--pc:var(--blue)}.player-pill.green{--pc:var(--green)}
 .player-pill>i{width:10px;height:10px;border-radius:50%;background:var(--pc);box-shadow:0 0 10px var(--pc);flex:none}
 .player-pill div{min-width:0;flex:1}
@@ -64,7 +64,6 @@ button{cursor:pointer}
   position:relative;width:var(--board-side);height:var(--board-side);flex:none;
   background:#fff;border-radius:2px;
   box-shadow:0 0 0 1px rgba(255,255,255,.24),0 0 0 5px rgba(6,8,13,.55),0 24px 38px rgba(0,0,0,.52);
-  filter:drop-shadow(0 24px 38px rgba(0,0,0,.38));
   overflow:visible
 }
 .board-art,.token-layer{position:absolute;inset:0}
@@ -105,17 +104,15 @@ button{cursor:pointer}
 .token-layer{z-index:12;pointer-events:none}
 .token{
   --token-colour:#fff;position:absolute;z-index:14;width:calc(100% / 15 * .92);height:calc(100% / 15 * 1.44);
-  transform:translate(-50%,-78%);border:0;background:none;padding:0;pointer-events:auto;
-  transition:left .145s ease-in-out,top .145s ease-in-out,filter .18s ease,opacity .18s ease;
-  filter:drop-shadow(0 4px 2px rgba(0,0,0,.42)) drop-shadow(0 0 1px rgba(255,255,255,.55));
+  left:0;top:0;transform:translate3d(var(--tx,0px),var(--ty,0px),0) translate(-50%,-78%) scale(var(--scale,1));border:0;background:none;padding:0;pointer-events:auto;\n  transition:transform .09s linear,opacity .09s ease;will-change:transform;
   touch-action:manipulation
 }
 .token:disabled{pointer-events:none}
-.token svg{width:100%;height:100%;display:block;filter:saturate(1.32) contrast(1.08) drop-shadow(0 2px 1px rgba(0,0,0,.42))}
-.token.mine svg{filter:saturate(1.4) contrast(1.08) drop-shadow(0 3px 2px rgba(0,0,0,.42))}
-.token.playable{cursor:pointer;animation:premiumReady .78s cubic-bezier(.2,.75,.3,1) infinite}
-.token.playable svg{filter:saturate(1.45) contrast(1.1) drop-shadow(0 7px 4px rgba(0,0,0,.42)) drop-shadow(0 0 7px color-mix(in srgb,var(--token-colour) 78%,transparent))}
-.token.captured{opacity:.25;transform:translate(-50%,-78%) scale(.72)}
+.token svg{width:100%;height:100%;display:block}
+.token.mine svg{opacity:1}
+.token.playable{cursor:pointer}
+.token.playable svg{opacity:1}
+.token.captured{opacity:.25;--scale:.72}
 .token-number{
   position:absolute;left:50%;top:23%;transform:translate(-50%,-50%);font-size:clamp(5px,1.25vw,9px);
   color:#fff;font-weight:950;text-shadow:0 1px 2px #000;pointer-events:none
@@ -133,7 +130,7 @@ button{cursor:pointer}
 
 .waiting-overlay{
   position:absolute;inset:39% 18%;z-index:30;padding:12px;border-radius:14px;background:rgba(8,11,18,.9);
-  border:1px solid rgba(255,255,255,.17);display:grid;place-items:center;text-align:center;backdrop-filter:blur(6px)
+  border:1px solid rgba(255,255,255,.17);display:grid;place-items:center;text-align:center;
 }
 .waiting-overlay b{font-size:9px;letter-spacing:.8px;margin-top:5px}.waiting-overlay span{font-size:7px;color:#aeb6cf;margin-top:3px}
 .waiting-spinner{width:20px;height:20px;border:2px solid #ffffff30;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
@@ -151,7 +148,7 @@ button{cursor:pointer}
   padding:8px;display:grid;place-items:center;box-shadow:0 9px 20px rgba(0,0,0,.48),0 0 0 2px rgba(255,255,255,.08) inset;
   cursor:not-allowed
 }
-.dice:not(:disabled){cursor:pointer;animation:pulse 1s infinite;box-shadow:0 0 10px 4px var(--player-colour),0 9px 20px rgba(0,0,0,.48)}
+.dice:not(:disabled){cursor:pointer;box-shadow:0 0 0 2px var(--player-colour),0 7px 16px rgba(0,0,0,.35)}
 .dice.rolling{animation:realisticRoll .16s linear infinite;box-shadow:0 8px 18px rgba(0,0,0,.42),0 0 14px 3px var(--player-colour)}
 .dice:disabled{opacity:.82}
 .dice-face{width:100%;height:100%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
@@ -159,12 +156,12 @@ button{cursor:pointer}
 .dice-face span.on{opacity:1}
 .turn-panel{
   display:flex;align-items:center;justify-content:center;gap:5px;min-width:150px;padding:5px 9px;border-radius:999px;
-  border:1px solid color-mix(in srgb,var(--player-colour) 55%,#fff 15%);background:rgba(8,11,18,.88)
+  border:1px solid var(--player-colour);background:rgba(8,11,18,.88)
 }
 .turn-dot{width:7px;height:7px;border-radius:50%;background:var(--player-colour);box-shadow:0 0 9px var(--player-colour)}
 .turn-text{font-size:6px;letter-spacing:1px;color:#8f99b3}.turn-panel strong{max-width:84px;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .timer-chip{font-size:7px;padding-left:5px;border-left:1px solid #ffffff20;color:#cfd5e4}.timer-chip b{font-size:9px;color:#fff}
-@keyframes pulse{50%{transform:scale(1.07);box-shadow:0 0 14px 5px var(--player-colour)}}
+}
 @keyframes realisticRoll{
   0%{transform:translate3d(-2px,0,0) rotate(-9deg) scale(.96)}
   25%{transform:translate3d(1px,-5px,0) rotate(7deg) scale(1.03)}
@@ -184,7 +181,7 @@ button{cursor:pointer}
 .chat-form input{min-width:0;flex:1;border:1px solid #ffffff17;background:#06080d;color:#fff;border-radius:8px;padding:8px;font-size:8px;outline:none}
 .chat-form button{border:0;border-radius:8px;background:#4753d6;color:#fff;font-size:7px;font-weight:900;padding:0 11px}
 
-.result-overlay{position:fixed;inset:0;z-index:90;background:#000b;display:grid;place-items:center;padding:20px;backdrop-filter:blur(7px)}
+.result-overlay{position:fixed;inset:0;z-index:90;background:#000b;display:grid;place-items:center;padding:20px;}
 .result-card{width:min(88vw,360px);padding:25px;text-align:center;border-radius:20px;background:linear-gradient(145deg,#111626,#080b12);border:1px solid #ffffff19;box-shadow:0 28px 80px #000}
 .result-card>span{font-size:7px;color:#9fa9c1;letter-spacing:2px}.result-card h2{margin:8px 0;font-size:25px}.result-card p{color:#b8c0d2;font-size:10px;line-height:1.5}
 .result-card button{margin-top:11px;border:0;border-radius:11px;background:#4f5ae2;color:#fff;font-weight:900;padding:11px 14px}
@@ -199,17 +196,25 @@ button{cursor:pointer}
 @keyframes loadingSweep{from{transform:translateX(-110%)}to{transform:translateX(245%)}}
 
 @media(max-width:600px){
-  :root{--board-side:min(86vw,62dvh,540px)}
+  :root{--board-side:min(95vw,64dvh,560px)}
   .match-strip{padding-right:46px;grid-template-columns:1fr .85fr 1fr}
   .match-mid small{display:none}
   .player-pill{padding:6px}.player-pill b{font-size:7px}.player-pill small{font-size:7px}
 }
 @media(max-width:390px){
-  :root{--board-side:min(88vw,60dvh,500px)}
+  :root{--board-side:min(96vw,62dvh,520px)}
   .match-strip{width:99vw;gap:3px}.connection{font-size:6px}.match-mid strong{font-size:7px}
   .dice{width:58px;height:58px}.dice-face span{width:8px;height:8px}
   .turn-panel{min-width:136px}
 }
 @media(prefers-reduced-motion:reduce){
-  .dice-loader,.loading-track span,.token.playable,.playable-ring,.playable-ring i,.dice:not(:disabled){animation-duration:2s}
+  .dice-loader,.loading-track span,.playable-ring,.dice.rolling{animation-duration:1.5s}
 }
+
+/* Android/Termux performance pass */
+html.lite .game::after{display:none}
+html.lite .board{box-shadow:0 0 0 2px #202633,0 12px 22px rgba(0,0,0,.3)}
+html.lite .player-pill,html.lite .dice-container,html.lite .events{background:#0d111b}
+html.lite .token{transition-duration:.07s}
+html.lite .playable-ring{animation-duration:1.15s}
+html.lite .dice-loader{animation-duration:.55s}
