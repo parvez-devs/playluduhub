@@ -327,6 +327,7 @@ public/
     style.css
   adminhub/
     index.html
+    admin.css
     admin.js
     withdraw.js
 
