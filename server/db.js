@@ -9,7 +9,7 @@ const db=new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 db.pragma('busy_timeout = 5000');
-db.pragma('synchronous = FULL');
+db.pragma(`synchronous = ${process.env.NODE_ENV==='production'?'FULL':'NORMAL'}`);
 
 const schema=`
 CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL);
@@ -72,7 +72,7 @@ function migrate(){
   const t=Date.now();
   db.prepare("INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(1,?)").run(t);
   db.prepare("INSERT OR IGNORE INTO admin_accounts(id,revenue_balance,updated_at) VALUES('main',0,?)").run(t);
-  const defaults={welcomeBonus:0,bonusWithdrawable:false,pvpEnabled:true,entryFee:5,minBet:10,maxBet:5000,turnSeconds:10,timeoutStrikes:2,extraTurnOnSix:true,extraTurnOnCapture:true,minDeposit:50,maxDeposit:50000,minWithdraw:100,maxWithdraw:50000,withdrawalFeePercent:0,dailyWithdrawLimit:100000,amlThreshold:50000,appNotice:'',supportText:'',withdrawFromCash:true,dailyDepositLimit:100000,disconnectLoss:true};
+  const defaults={welcomeBonus:0,bonusWithdrawable:false,pvpEnabled:true,entryFee:5,minBet:10,maxBet:5000,turnSeconds:10,timeoutStrikes:2,extraTurnOnSix:true,extraTurnOnCapture:true,minDeposit:50,maxDeposit:50000,minWithdraw:100,maxWithdraw:50000,withdrawalFeePercent:0,dailyWithdrawLimit:100000,amlThreshold:50000,appNotice:'',supportText:'',withdrawFromCash:true,dailyDepositLimit:100000,disconnectLoss:true,disconnectGraceSeconds:15,waitingMatchTtlMinutes:60};
   const stmt=db.prepare('INSERT OR IGNORE INTO app_config(key,value,updated_at) VALUES(?,?,?)');
   const tx=db.transaction(()=>Object.entries(defaults).forEach(([k,v])=>stmt.run(k,JSON.stringify(v),t))); tx();
 }
