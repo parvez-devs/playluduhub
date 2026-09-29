@@ -4,6 +4,7 @@ function attach(server){
   const wss=new WebSocketServer({noServer:true,maxPayload:32*1024}); const rooms=new Map();
   server.on('upgrade',(req,socket,head)=>{try{if(process.env.NODE_ENV==='production'){const proto=req.socket.encrypted?'https':(process.env.TRUST_PROXY==='1'?String(req.headers['x-forwarded-proto']||'').split(',')[0].trim():'http');if(proto!=='https'){socket.write('HTTP/1.1 426 Upgrade Required\r\n\r\n');socket.destroy();return;}} const u=new URL(req.url,'http://localhost'); if(u.pathname!=='/ws'){socket.destroy();return;} const a=auth.fromRequest(req); if(!a){socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');socket.destroy();return;} wss.handleUpgrade(req,socket,head,ws=>{ws.userId=a.user.id; ws.joined=new Set(); wss.emit('connection',ws,req);});}catch{socket.destroy();}});
   wss.on('connection',ws=>{
+    ws.isAlive=true; ws.on('pong',()=>{ws.isAlive=true;});
     send(ws,{type:'hello',userId:ws.userId}); ws.msgWindow={at:Date.now(),n:0};
     ws.on('message',buf=>{const now=Date.now(); if(now-ws.msgWindow.at>1000)ws.msgWindow={at:now,n:0}; if(++ws.msgWindow.n>20)return send(ws,{type:'error',code:'RATE_LIMIT'});let m; try{m=JSON.parse(buf.toString('utf8'));}catch{return send(ws,{type:'error',code:'BAD_JSON'});} try{handle(ws,m);}catch(e){send(ws,{type:'error',code:e.code||'SERVER_ERROR'});}});
     ws.on('close',()=>{for(const id of ws.joined){leaveRoom(ws,id); pvp.connected(id,ws.userId,false);}});
@@ -21,6 +22,8 @@ function attach(server){
   function broadcast(id,msg){for(const ws of rooms.get(id)||[])send(ws,msg);}
   function send(ws,obj){if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(obj));}
   pvp.events.on('message',(id,msg)=>broadcast(id,msg));
+  const heartbeat=setInterval(()=>{for(const ws of wss.clients){if(ws.isAlive===false){ws.terminate();continue;}ws.isAlive=false;try{ws.ping();}catch{ws.terminate();}}},30000);heartbeat.unref();
+  server.on('close',()=>clearInterval(heartbeat));
   pvp.resumeActive();
   return wss;
 }
