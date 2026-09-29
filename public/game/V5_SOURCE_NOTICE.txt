@@ -1,0 +1,21 @@
+PLAY LUDU HUB — V5 GAME UI SOURCE NOTICE
+
+The /public/game presentation in this repository was rebuilt from the visual/game-board reference supplied by the operator in:
+  play-ludu-hub-termux-v5-premium.zip
+
+That uploaded package identifies itself as:
+  LibreLudo 2.2.1
+  License: AGPL-3.0-only
+
+The real-money PLAY LUDU HUB integration does not use the uploaded package's local random-number generator, saved local match state, or bot logic as the authority for paid PvP.
+
+For paid PvP, the PLAY LUDU HUB Node.js server remains authoritative for:
+  - dice results
+  - turn order
+  - legal moves
+  - captures
+  - timeout/disconnect results
+  - winner
+  - escrow and wallet settlement
+
+The V5 board geometry uses opposite Blue and Green seats for the two-player server match.
