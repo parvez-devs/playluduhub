@@ -1,7 +1,54 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PLAY LUDU HUB — Admin Hub</title><link rel="stylesheet" href="/style.css"><style>.adminnav{display:flex;gap:8px;overflow:auto;margin-bottom:14px}.adminnav button{white-space:nowrap}.metric{font-size:28px;font-weight:800}.table{overflow:auto}.table table{width:100%;border-collapse:collapse;font-size:13px}.table th,.table td{padding:9px;border-bottom:1px solid #223553;text-align:left;white-space:nowrap}.actions{display:flex;gap:6px}.actions button{padding:7px 9px}.json{white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:12px}.modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:20;padding:20px}.modal>div{max-width:900px;max-height:90vh;overflow:auto;background:#101d31;padding:16px;border-radius:16px}.modal img,.modal iframe{max-width:100%;width:800px;min-height:600px;background:white}</style></head><body>
-<header class="top"><div class="brand">🛡️ PLAY LUDU HUB — Admin Hub</div><span class="pill">8h server session</span></header><main class="wrap">
-<section id="adminLogin" class="auth"><div class="card"><h2>Admin PIN</h2><p class="muted">Three failed attempts lock this browser/device identity for 30 minutes.</p><form id="adminLoginForm"><div class="field"><label>PIN</label><input type="password" name="pin" autocomplete="off" required></div><br><button>Unlock Admin Hub</button></form></div></section>
-<section id="adminApp" class="hidden"><nav class="adminnav" id="nav"><button data-tab="dashboard">Dashboard</button><button data-tab="pending">Pending</button><button data-tab="users">Users</button><button data-tab="matches">Live Matches</button><button data-tab="payments">Payment Methods</button><button data-tab="config">Config</button><button data-tab="ledger">Ledger</button><button data-tab="aml">AML</button><button data-tab="audit">Audit</button><button data-tab="recon">Reconciliation</button></nav><section id="view"></section></section>
-</main><div id="toast" class="toast hidden"></div><div id="modal" class="modal hidden"><div><button id="closeModal" class="secondary">Close</button><div id="modalBody"></div></div></div>
-<script src="/adminhub/withdraw.js"></script><script src="/adminhub/admin.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#08060c">
+  <title>PLAY LUDU HUB — Admin Control Center</title>
+  <link rel="stylesheet" href="/adminhub/admin.css">
+</head>
+<body>
+<section id="adminLogin" class="gate">
+  <div class="gate-card">
+    <div class="shield">◆</div>
+    <div class="eyebrow">PRIVATE OPERATOR ROUTE</div>
+    <h1>Admin Hub</h1>
+    <p class="muted">Server-side PIN verification. Three failed attempts lock this browser/device identity for 30 minutes.</p>
+    <form id="adminLoginForm">
+      <label>Admin PIN</label>
+      <div class="pin-row"><input type="password" name="pin" autocomplete="off" maxlength="128" placeholder="Enter private PIN" required><button type="submit">UNLOCK</button></div>
+    </form>
+    <div class="gate-status">Manual payments • Ledger • PvP • AML • Audit</div>
+    <a class="back-link" href="/">← Main player site</a>
+  </div>
+</section>
 
+<section id="adminApp" class="admin-app hidden">
+  <header class="topbar">
+    <div class="brand"><span>◆</span><div><b>PLAY LUDU HUB</b><small>ADMIN CONTROL CENTER</small></div></div>
+    <div class="top-actions"><span>Secure server session</span><a href="/">Player site</a></div>
+  </header>
+
+  <main class="shell">
+    <nav class="adminnav" id="nav">
+      <button data-tab="dashboard">Dashboard</button>
+      <button data-tab="pending">Pending</button>
+      <button data-tab="users">Users</button>
+      <button data-tab="matches">Live Matches</button>
+      <button data-tab="payments">Payment Methods</button>
+      <button data-tab="config">Config</button>
+      <button data-tab="ledger">Ledger</button>
+      <button data-tab="aml">AML</button>
+      <button data-tab="audit">Audit</button>
+      <button data-tab="recon">Reconciliation</button>
+    </nav>
+    <section id="view"></section>
+  </main>
+</section>
+
+<div id="toast" class="toast hidden"></div>
+<div id="modal" class="modal hidden"><div class="modal-card"><button id="closeModal" class="secondary">Close</button><div id="modalBody"></div></div></div>
+<script src="/adminhub/withdraw.js"></script>
+<script src="/adminhub/admin.js"></script>
+</body>
+</html>
