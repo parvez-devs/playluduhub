@@ -26,8 +26,9 @@ export BACKUP_DIR='./data/backups'
 # Set 1 only behind a trusted reverse proxy that overwrites forwarding headers.
 export TRUST_PROXY='0'
 
-# Email OTP verification (free-friendly via Gmail SMTP / any SMTP provider)
-# Keep 0 until SMTP credentials are configured, then set 1.
+# Email OTP verification
+# Railway Free/Trial/Hobby blocks outbound SMTP. Prefer EMAIL_HTTPS_* there.
+# Keep 0 until an email delivery provider is configured, then set 1.
 export EMAIL_OTP_REQUIRED='0'
 export EMAIL_SMTP_HOST='smtp.gmail.com'
 export EMAIL_SMTP_PORT='465'
@@ -36,6 +37,11 @@ export EMAIL_SMTP_USER=''
 # For Gmail, use an App Password here — never your normal Gmail password.
 export EMAIL_SMTP_PASS=''
 export EMAIL_FROM='PLAY LUDU HUB <your-email@gmail.com>'
+
+# HTTPS email adapter (recommended on Railway non-Pro plans).
+# Can point to a Google Apps Script Web App or another transactional email API bridge.
+export EMAIL_HTTPS_ENDPOINT=''
+export EMAIL_HTTPS_SECRET=''
 
 # Google OAuth
 # Authorized redirect URI:
