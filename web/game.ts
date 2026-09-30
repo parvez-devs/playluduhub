@@ -170,7 +170,7 @@ function syncStats(){for(const p of match?.playerStats||[]){if(p.username)names.
 function renderPlayers(){if(!state)return;const current=state.players[state.turnSeat]?.id;state.players.forEach((p,serverSeat)=>{const card=$('#p'+visualSeat(serverSeat)),n=card?.querySelector('[data-name]'),a=card?.querySelector('[data-avatar]'),h=card?.querySelector('[data-home]'),st=card?.querySelector('[data-strikes]'),stat=(match?.playerStats||[]).find((x:any)=>x.userId===p.id);if(n)n.textContent=pname(p.id);if(a)a.textContent=initials(pname(p.id));if(h)h.textContent=p.tokens.filter(x=>x===57).length+' / 4 HOME';if(st)st.textContent=(strikes.get(p.id)||0)?'⚠ '+strikes.get(p.id):'';card?.classList.toggle('active',p.id===current);card?.classList.toggle('online',!!stat?.connected)})}
 function render(){
   buildBoard();
-  if(match){const code=$('#matchCode'),stakes=$('#stakes');if(code)code.textContent='MATCH '+String(match.id||matchId).slice(-8).toUpperCase();if(stakes)stakes.textContent='ENTRY ৳'+Number(match.entryFee||0).toFixed(2)+' • BET ৳'+Number(match.betAmount||0).toFixed(2)}
+  if(match){const code=$('#matchCode'),stakes=$('#stakes');if(code)code.textContent='MATCH '+String(match.id||matchId).slice(-8).toUpperCase();if(stakes)stakes.textContent=String(match.mode||'classic').toUpperCase()+' • ENTRY ৳'+Number(match.entryFee||0).toFixed(2)+' • BET ৳'+Number(match.betAmount||0).toFixed(2)}
   const waiting=match?.status==='waiting'&&!state;$('#waitingOverlay')?.classList.toggle('hidden',!waiting);$('#cancelWaiting')?.classList.toggle('hidden',!(waiting&&match?.playerAId===me?.id));
   if(!state){const st=$('#status');if(st)st.textContent=waiting?'Waiting for opponent':'Loading match state…';renderTokens();return}
   renderPlayers();renderTokens();
