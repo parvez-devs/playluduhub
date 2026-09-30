@@ -1,4 +1,5 @@
 import './game.css';
+import './real-theme.css';
 
 const root=document.querySelector<HTMLDivElement>('#root');
 if(!root)throw new Error('ROOT_NOT_FOUND');
