@@ -1,6 +1,7 @@
 'use strict';
 const crypto=require('crypto');
 const nodemailer=require('nodemailer');
+const {Resend}=require('resend');
 const {db}=require('./db');
 const {uid,hmac,timingSafeEqual}=require('./utils');
 
@@ -8,7 +9,7 @@ const OTP_TTL_MS=10*60*1000;
 const RESEND_MS=60*1000;
 const MAX_CHECKS=6;
 const MAX_SENDS=5;
-let transporter=null;
+let transporter=null,resendClient=null;
 
 function err(code,status=400){return Object.assign(new Error(code),{code,status});}
 function normalizePhone(input){
@@ -53,24 +54,29 @@ function messageFor(code){
   };
 }
 async function sendResend(email,code){
-  const apiKey=String(process.env.RESEND_API_KEY||''),from=String(process.env.RESEND_FROM||'').trim();
+  const apiKey=String(process.env.RESEND_API_KEY||'').trim();
+  const from=String(process.env.RESEND_FROM||'').trim();
   if(!apiKey||!from)throw err('EMAIL_OTP_NOT_CONFIGURED',503);
+  if(!resendClient)resendClient=new Resend(apiKey);
   const msg=messageFor(code);
-  let r,data;
   try{
-    r=await fetch('https://api.resend.com/emails',{
-      method:'POST',
-      headers:{authorization:'Bearer '+apiKey,'content-type':'application/json','idempotency-key':'otp-'+crypto.randomUUID()},
-      body:JSON.stringify({from,to:[email],subject:msg.subject,text:msg.text,html:msg.html}),
-      signal:AbortSignal.timeout(12000)
+    const {data,error}=await resendClient.emails.send({
+      from,
+      to:[email],
+      subject:msg.subject,
+      text:msg.text,
+      html:msg.html
     });
-    data=await r.json().catch(()=>({}));
-  }catch(e){console.error('resend otp transport',e?.message||e);throw err('EMAIL_OTP_SEND_FAILED',503);}
-  if(!r.ok||!data?.id){
-    console.error('resend otp error',r.status,data?.message||data?.name||'unknown');
+    if(error||!data?.id){
+      console.error('resend otp error',error?.name||'',error?.message||'unknown');
+      throw err('EMAIL_OTP_SEND_FAILED',503);
+    }
+    return data.id;
+  }catch(e){
+    if(e?.code==='EMAIL_OTP_SEND_FAILED')throw e;
+    console.error('resend otp transport',e?.message||e);
     throw err('EMAIL_OTP_SEND_FAILED',503);
   }
-  return data.id;
 }
 async function sendHttps(email,code){
   const endpoint=String(process.env.EMAIL_HTTPS_ENDPOINT||'').trim(),secret=String(process.env.EMAIL_HTTPS_SECRET||'');
