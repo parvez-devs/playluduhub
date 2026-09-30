@@ -71,7 +71,7 @@ button:disabled{cursor:not-allowed}
   --token-colour:#fff;--scale:1;position:absolute;left:0;top:0;z-index:14;width:calc(100% / 15 * .92);height:calc(100% / 15 * 1.44);
   padding:0;border:0;background:none;pointer-events:auto;touch-action:manipulation;will-change:transform;
   transform:translate3d(var(--tx,0px),var(--ty,0px),0) translate(-50%,-78%) scale(var(--scale));
-  transition:transform .09s linear,opacity .09s ease
+  transition:transform .045s linear,opacity .045s ease
 }
 .token:disabled{pointer-events:none}.token svg{width:100%;height:100%;display:block}.token.captured{opacity:.28;--scale:.74}.token.pending-move{--scale:.90;opacity:.78}
 .token-number{position:absolute;left:50%;top:23%;transform:translate(-50%,-50%);font-size:clamp(5px,1.15vw,9px);font-weight:950;color:#fff;text-shadow:0 1px 2px #000;pointer-events:none}
@@ -132,7 +132,7 @@ button:disabled{cursor:not-allowed}
 @keyframes diceFloat{to{transform:translateY(-7px) rotate(5deg)}}@keyframes loading{from{transform:translateX(-120%)}to{transform:translateX(260%)}}
 
 html.lite .game::after{display:none}html.lite .board{box-shadow:0 0 0 2px #202633,0 12px 22px rgba(0,0,0,.28)}
-html.lite .dice-container,html.lite .player-pill,html.lite .events{background:#0c1119}.lite .token{transition-duration:.045s}.lite .playable-ring{animation:none}
+html.lite .dice-container,html.lite .player-pill,html.lite .events{background:#0c1119}.lite .token{transition-duration:.032s}.lite .playable-ring{animation:none}
 
 @media(max-width:600px){
   :root{--board-side:min(95vw,64dvh,560px)}
@@ -150,3 +150,5 @@ html.lite .dice-container,html.lite .player-pill,html.lite .events{background:#0
   .control-rail{min-height:102px}
   .dice-container{padding:7px 9px}
 }
+
+.sound-tool{min-width:70px}
