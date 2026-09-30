@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS users(
  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','banned')),
  avatar TEXT, display_name TEXT,
  self_excluded INTEGER NOT NULL DEFAULT 0 CHECK(self_excluded IN(0,1)), cool_off_until INTEGER,
- daily_deposit_limit INTEGER, phone_verified INTEGER NOT NULL DEFAULT 1 CHECK(phone_verified IN(0,1)), email_verified INTEGER NOT NULL DEFAULT 0 CHECK(email_verified IN(0,1)), google_sub TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+ daily_deposit_limit INTEGER, phone_verified INTEGER NOT NULL DEFAULT 1 CHECK(phone_verified IN(0,1)), email_verified INTEGER NOT NULL DEFAULT 0 CHECK(email_verified IN(0,1)), google_sub TEXT,
+ referral_code TEXT UNIQUE, referred_by TEXT REFERENCES users(id),
+ created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS wallets(
  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -69,6 +71,23 @@ CREATE INDEX IF NOT EXISTS idx_email_verifications_user ON email_verifications(u
 CREATE TABLE IF NOT EXISTS google_oauth_states(state_hash TEXT PRIMARY KEY,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS google_signup_sessions(token_hash TEXT PRIMARY KEY,google_sub TEXT NOT NULL UNIQUE,email TEXT NOT NULL,name TEXT NOT NULL,avatar TEXT,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS disputes(id TEXT PRIMARY KEY,match_id TEXT NOT NULL REFERENCES matches(id),opened_by TEXT REFERENCES users(id),reason TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'open' CHECK(status IN('open','resolved','rejected')),resolution TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS referrals(
+ referrer_id TEXT NOT NULL REFERENCES users(id),
+ referred_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+ code TEXT NOT NULL,
+ games_completed INTEGER NOT NULL DEFAULT 0 CHECK(games_completed>=0),
+ rewarded_at INTEGER,
+ reward_amount INTEGER NOT NULL DEFAULT 0 CHECK(reward_amount>=0),
+ created_at INTEGER NOT NULL,
+ PRIMARY KEY(referrer_id,referred_id)
+);
+CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS referral_games(
+ match_id TEXT NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ created_at INTEGER NOT NULL,
+ PRIMARY KEY(match_id,user_id)
+);
 `;
 
 function migrate(){
@@ -86,14 +105,29 @@ function migrate(){
   if(!cols.includes('google_sub')){
     db.exec("ALTER TABLE users ADD COLUMN google_sub TEXT");
   }
+  if(!cols.includes('referral_code'))db.exec("ALTER TABLE users ADD COLUMN referral_code TEXT");
+  if(!cols.includes('referred_by'))db.exec("ALTER TABLE users ADD COLUMN referred_by TEXT");
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL;");
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code) WHERE referral_code IS NOT NULL;");
+  const existing=db.prepare('SELECT id,username,referral_code FROM users ORDER BY created_at').all();
+  const hasCode=db.prepare('SELECT 1 FROM users WHERE referral_code=? LIMIT 1');
+  const setCode=db.prepare('UPDATE users SET referral_code=? WHERE id=?');
+  for(const u of existing){
+    if(u.referral_code)continue;
+    const stem=String(u.username||'PLAYER').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)||'PLAYER';
+    const tail=String(u.id||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(-6)||String(Date.now()).slice(-6);
+    let code=(stem+tail).slice(0,12),n=1;
+    while(hasCode.get(code))code=(stem+tail.slice(0,Math.max(1,5-String(n).length))+String(n++)).slice(0,12);
+    setCode.run(code,u.id);
+  }
+  db.exec("CREATE TABLE IF NOT EXISTS referrals(referrer_id TEXT NOT NULL REFERENCES users(id),referred_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,code TEXT NOT NULL,games_completed INTEGER NOT NULL DEFAULT 0 CHECK(games_completed>=0),rewarded_at INTEGER,reward_amount INTEGER NOT NULL DEFAULT 0 CHECK(reward_amount>=0),created_at INTEGER NOT NULL,PRIMARY KEY(referrer_id,referred_id)); CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id,created_at DESC); CREATE TABLE IF NOT EXISTS referral_games(match_id TEXT NOT NULL REFERENCES matches(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,created_at INTEGER NOT NULL,PRIMARY KEY(match_id,user_id));");
   db.exec("CREATE TABLE IF NOT EXISTS email_verifications(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,email TEXT NOT NULL,code_hash TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN('pending','verified','expired')),expires_at INTEGER NOT NULL,send_count INTEGER NOT NULL DEFAULT 1,attempt_count INTEGER NOT NULL DEFAULT 0,last_sent_at INTEGER NOT NULL,created_at INTEGER NOT NULL,verified_at INTEGER); CREATE INDEX IF NOT EXISTS idx_email_verifications_user ON email_verifications(user_id,created_at DESC);");
   db.exec("CREATE TABLE IF NOT EXISTS google_oauth_states(state_hash TEXT PRIMARY KEY,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS google_signup_sessions(token_hash TEXT PRIMARY KEY,google_sub TEXT NOT NULL UNIQUE,email TEXT NOT NULL,name TEXT NOT NULL,avatar TEXT,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL);");
   db.prepare("INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(1,?)").run(t);
   db.prepare("INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(2,?)").run(t);
   db.prepare("INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(3,?)").run(t);
   db.prepare("INSERT OR IGNORE INTO admin_accounts(id,revenue_balance,updated_at) VALUES('main',0,?)").run(t);
-  const defaults={welcomeBonus:0,bonusWithdrawable:false,pvpEnabled:true,entryFee:5,minBet:10,maxBet:5000,turnSeconds:10,timeoutStrikes:2,extraTurnOnSix:true,extraTurnOnCapture:true,extraTurnOnFinish:true,minDeposit:50,maxDeposit:50000,minWithdraw:100,maxWithdraw:50000,withdrawalFeePercent:0,dailyWithdrawLimit:100000,amlThreshold:50000,appNotice:'',supportText:'',withdrawFromCash:true,dailyDepositLimit:100000,disconnectLoss:true,disconnectGraceSeconds:15,waitingMatchTtlMinutes:60};
+  const defaults={welcomeBonus:0,bonusWithdrawable:false,pvpEnabled:true,entryFee:5,minBet:10,maxBet:5000,turnSeconds:10,speedTurnSeconds:7,blitzTurnSeconds:5,timeoutStrikes:2,extraTurnOnSix:true,extraTurnOnCapture:true,extraTurnOnFinish:true,minDeposit:50,maxDeposit:50000,minWithdraw:100,maxWithdraw:50000,withdrawalFeePercent:0,dailyWithdrawLimit:100000,amlThreshold:50000,appNotice:'',supportText:'',withdrawFromCash:true,dailyDepositLimit:100000,disconnectLoss:true,disconnectGraceSeconds:15,waitingMatchTtlMinutes:60,referralEnabled:true,referralBonus:0,referralGamesRequired:2,promoTitle:'Play. Win. Repeat.',promoText:'Server-authoritative Ludo with secure wallet settlement.'};
   const stmt=db.prepare('INSERT OR IGNORE INTO app_config(key,value,updated_at) VALUES(?,?,?)');
   const tx=db.transaction(()=>Object.entries(defaults).forEach(([k,v])=>stmt.run(k,JSON.stringify(v),t))); tx();
 }
