@@ -83,7 +83,7 @@
     if(m.type==='move'){log('Token '+(Number(m.tokenId)+1)+' moved by '+name(m.by));return;}
     if(m.type==='turn'){if(state)state.deadline=m.deadline;return;}
     if(m.type==='chat'){log(name(m.by)+': '+m.text);return;}
-    if(m.type==='end'){rollPending=false;movePending=false;log('🏁 Winner: '+name(m.winnerId)+' ('+m.reason+')');showResult(m.winnerId,m.reason);return;}
+    if(m.type==='end'){rollPending=false;movePending=false;stopDiceSpin(null);GameRenderer.clearPending?.();log('🏁 Winner: '+name(m.winnerId)+' ('+m.reason+')');showResult(m.winnerId,m.reason);return;}
     if(m.type==='error'){
       rollPending=false;movePending=false;stopDiceSpin(null);GameRenderer.clearPending?.();
       if(m.code==='TURN_TIMEOUT'&&m.playerId){strikes.set(m.playerId,Number(m.strikes||0));log('⚠ '+name(m.playerId)+' timeout strike '+m.strikes);}
@@ -118,8 +118,9 @@
     }
 
     renderPlayers();
-    const current=state.players[state.turnSeat]?.id,seat=Number(state.turnSeat||0),mine=current===me.id,finished=state.phase==='finished';
-    const station=$('#diceStation');station?.classList.toggle('blue',seat===0);station?.classList.toggle('green',seat===1);
+    const current=state.players[state.turnSeat]?.id,seat=Number(state.turnSeat||0),mySeat=state.players.findIndex(p=>p.id===me.id),mine=current===me.id,finished=state.phase==='finished';
+    document.querySelector('.game')?.classList.toggle('viewer-green',mySeat===1);
+    const station=$('#diceStation');station?.classList.toggle('blue',seat===0);station?.classList.toggle('green',seat===1);station?.classList.toggle('dock-left',seat===mySeat);station?.classList.toggle('dock-right',seat!==mySeat);
     const turnColour=$('#turnColour');if(turnColour)turnColour.textContent=finished?'MATCH END':(seat===0?'BLUE TURN':'GREEN TURN');
     $('#turnPlayer').textContent=finished?'FINISHED':(mine?'YOU':short(current));
     $('#status').textContent=finished?'Match complete':mine?(state.rolled==null?'Your turn — roll dice':'Choose a playable token'):name(current)+"'s turn";
