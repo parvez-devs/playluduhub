@@ -1,16 +1,18 @@
 'use strict';
+const crypto=require('crypto');
+const nodemailer=require('nodemailer');
 const {db}=require('./db');
-const {uid}=require('./utils');
+const {uid,hmac,timingSafeEqual}=require('./utils');
 
 const OTP_TTL_MS=10*60*1000;
 const RESEND_MS=60*1000;
 const MAX_CHECKS=6;
 const MAX_SENDS=5;
+let transporter=null;
 
 function err(code,status=400){return Object.assign(new Error(code),{code,status});}
-
 function normalizePhone(input){
-  let s=String(input||'').trim().replace(/[\s()-]/g,'');
+  const s=String(input||'').trim().replace(/[\s()-]/g,'');
   if(/^01\d{9}$/.test(s))return '+88'+s;
   if(/^8801\d{9}$/.test(s))return '+'+s;
   if(/^\+8801\d{9}$/.test(s))return s;
@@ -22,88 +24,79 @@ function phoneVariants(e164){
   if(/^\+8801\d{9}$/.test(e164))out.add(e164.slice(3));
   return [...out];
 }
-function credentials(){
-  const serviceSid=process.env.TWILIO_VERIFY_SERVICE_SID||'';
-  const user=process.env.TWILIO_API_KEY||process.env.TWILIO_ACCOUNT_SID||'';
-  const pass=process.env.TWILIO_API_SECRET||process.env.TWILIO_AUTH_TOKEN||'';
-  if(!serviceSid||!user||!pass)throw err('OTP_PROVIDER_NOT_CONFIGURED',503);
-  return {serviceSid,user,pass};
+function mailEnabled(){return !!(process.env.EMAIL_SMTP_USER&&process.env.EMAIL_SMTP_PASS);}
+function mailer(){
+  if(!mailEnabled())throw err('EMAIL_OTP_NOT_CONFIGURED',503);
+  if(transporter)return transporter;
+  const port=Number(process.env.EMAIL_SMTP_PORT||465);
+  transporter=nodemailer.createTransport({
+    host:process.env.EMAIL_SMTP_HOST||'smtp.gmail.com',
+    port,
+    secure:String(process.env.EMAIL_SMTP_SECURE||'1')!=='0',
+    auth:{user:process.env.EMAIL_SMTP_USER,pass:process.env.EMAIL_SMTP_PASS},
+    connectionTimeout:10000,greetingTimeout:10000,socketTimeout:15000
+  });
+  return transporter;
 }
-async function twilioPost(path,params){
-  const {serviceSid,user,pass}=credentials();
-  const body=new URLSearchParams(params);
-  let r;
+function secret(){const s=process.env.SESSION_SECRET||'';if(!s)throw err('SESSION_SECRET_REQUIRED',500);return s;}
+function codeHash(id,code){return hmac(secret(),id+':'+String(code));}
+function makeCode(){return String(crypto.randomInt(100000,1000000));}
+function maskEmail(email){const [a,b]=String(email).split('@');if(!b)return email;return (a.slice(0,2)||'*')+'***@'+b;}
+async function sendCode(email,code){
+  if(process.env.NODE_ENV!=='production'&&process.env.EMAIL_OTP_DEV_CODE){
+    console.log('[email-otp-dev]',email,process.env.EMAIL_OTP_DEV_CODE);
+    return;
+  }
   try{
-    r=await fetch('https://verify.twilio.com/v2/Services/'+encodeURIComponent(serviceSid)+path,{
-      method:'POST',
-      headers:{authorization:'Basic '+Buffer.from(user+':'+pass).toString('base64'),'content-type':'application/x-www-form-urlencoded'},
-      body,
-      signal:AbortSignal.timeout(12000)
+    await mailer().sendMail({
+      from:process.env.EMAIL_FROM||('PLAY LUDU HUB <'+process.env.EMAIL_SMTP_USER+'>'),
+      to:email,
+      subject:'PLAY LUDU HUB verification code',
+      text:'Your PLAY LUDU HUB verification code is '+code+'. It expires in 10 minutes. Do not share this code.',
+      html:'<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:28px;background:#101018;color:#fff;border-radius:18px"><div style="font-size:12px;letter-spacing:2px;color:#b8a0ff">PLAY LUDU HUB</div><h2 style="margin:8px 0 4px">Verify your email</h2><p style="color:#b8b3c0">Use this one-time code to finish creating your account.</p><div style="font-size:34px;font-weight:800;letter-spacing:8px;padding:18px 0;color:#fff">'+code+'</div><p style="color:#8f8997;font-size:12px">This code expires in 10 minutes. Do not share it with anyone.</p></div>'
     });
-  }catch{throw err('OTP_PROVIDER_UNAVAILABLE',503);}
-  const data=await r.json().catch(()=>({}));
-  if(!r.ok){
-    if(r.status===429)throw err('OTP_RATE_LIMIT',429);
-    throw err('OTP_PROVIDER_ERROR',502);
-  }
-  return data;
-}
-async function sendProvider(phone){
-  if(process.env.NODE_ENV!=='production'&&process.env.OTP_DEV_CODE){
-    console.log('[otp-dev] verification requested for',phone);
-    return {status:'pending'};
-  }
-  return twilioPost('/Verifications',{To:phone,Channel:'sms'});
-}
-async function checkProvider(phone,code){
-  if(process.env.NODE_ENV!=='production'&&process.env.OTP_DEV_CODE){
-    return {status:String(code)===String(process.env.OTP_DEV_CODE)?'approved':'pending'};
-  }
-  return twilioPost('/VerificationCheck',{To:phone,Code:String(code)});
+  }catch(e){console.error('email otp send',e?.message||e);throw err('EMAIL_OTP_SEND_FAILED',503);}
 }
 function getSession(id){
-  const row=db.prepare('SELECT * FROM phone_verifications WHERE id=?').get(String(id||''));
+  const row=db.prepare('SELECT * FROM email_verifications WHERE id=?').get(String(id||''));
   if(!row)throw err('OTP_SESSION_NOT_FOUND',404);
   return row;
 }
-async function startForUser(userId,phone){
-  const t=Date.now(),id=uid('otp');
-  db.prepare("UPDATE phone_verifications SET status='expired' WHERE user_id=? AND status='pending'").run(userId);
-  await sendProvider(phone);
-  db.prepare("INSERT INTO phone_verifications(id,user_id,phone,status,expires_at,send_count,attempt_count,last_sent_at,created_at) VALUES(?,?,?,'pending',?,1,0,?,?)")
-    .run(id,userId,phone,t+OTP_TTL_MS,t,t);
-  return {id,expiresAt:t+OTP_TTL_MS,resendAfter:t+RESEND_MS};
+async function startForUser(userId,email){
+  const t=Date.now(),id=uid('eotp'),code=process.env.NODE_ENV!=='production'&&process.env.EMAIL_OTP_DEV_CODE?String(process.env.EMAIL_OTP_DEV_CODE):makeCode();
+  db.prepare("UPDATE email_verifications SET status='expired' WHERE user_id=? AND status='pending'").run(userId);
+  db.prepare("INSERT INTO email_verifications(id,user_id,email,code_hash,status,expires_at,send_count,attempt_count,last_sent_at,created_at) VALUES(?,?,?,?, 'pending',?,1,0,?,?)")
+    .run(id,userId,email,codeHash(id,code),t+OTP_TTL_MS,t,t);
+  try{await sendCode(email,code);}catch(e){db.prepare('DELETE FROM email_verifications WHERE id=?').run(id);throw e;}
+  return {id,maskedEmail:maskEmail(email),expiresAt:t+OTP_TTL_MS,resendAfter:t+RESEND_MS};
 }
 async function resend(id){
   const row=getSession(id),t=Date.now();
-  if(row.status==='verified')throw err('PHONE_ALREADY_VERIFIED');
+  if(row.status==='verified')throw err('EMAIL_ALREADY_VERIFIED');
   if(row.send_count>=MAX_SENDS)throw err('OTP_SEND_LIMIT',429);
   if(t-Number(row.last_sent_at||0)<RESEND_MS)throw err('OTP_RESEND_TOO_SOON',429);
-  const user=db.prepare('SELECT phone_verified,status FROM users WHERE id=?').get(row.user_id);
+  const user=db.prepare('SELECT email_verified FROM users WHERE id=?').get(row.user_id);
   if(!user)throw err('USER_NOT_FOUND',404);
-  if(user.phone_verified)throw err('PHONE_ALREADY_VERIFIED');
-  await sendProvider(row.phone);
-  db.prepare("UPDATE phone_verifications SET status='pending',expires_at=?,send_count=send_count+1,last_sent_at=? WHERE id=?")
-    .run(t+OTP_TTL_MS,t,row.id);
-  return {id:row.id,expiresAt:t+OTP_TTL_MS,resendAfter:t+RESEND_MS};
+  if(user.email_verified)throw err('EMAIL_ALREADY_VERIFIED');
+  const code=process.env.NODE_ENV!=='production'&&process.env.EMAIL_OTP_DEV_CODE?String(process.env.EMAIL_OTP_DEV_CODE):makeCode();
+  await sendCode(row.email,code);
+  db.prepare("UPDATE email_verifications SET status='pending',code_hash=?,expires_at=?,send_count=send_count+1,last_sent_at=? WHERE id=?")
+    .run(codeHash(row.id,code),t+OTP_TTL_MS,t,row.id);
+  return {id:row.id,maskedEmail:maskEmail(row.email),expiresAt:t+OTP_TTL_MS,resendAfter:t+RESEND_MS};
 }
 async function verify(id,code){
   const row=getSession(id),t=Date.now();
-  if(row.status==='verified'){
-    const u=db.prepare('SELECT * FROM users WHERE id=?').get(row.user_id);
-    return {user:u,alreadyVerified:true};
-  }
-  if(row.status!=='pending'||Number(row.expires_at)<=t)throw err('OTP_EXPIRED',400);
+  if(row.status==='verified')return {user:db.prepare('SELECT * FROM users WHERE id=?').get(row.user_id),alreadyVerified:true};
+  if(row.status!=='pending'||Number(row.expires_at)<=t)throw err('OTP_EXPIRED');
   if(Number(row.attempt_count||0)>=MAX_CHECKS)throw err('OTP_ATTEMPTS_EXCEEDED',429);
   const value=String(code||'').trim();
-  if(!/^\d{4,10}$/.test(value))throw err('INVALID_OTP',400);
-  const result=await checkProvider(row.phone,value);
-  db.prepare('UPDATE phone_verifications SET attempt_count=attempt_count+1 WHERE id=?').run(row.id);
-  if(result.status!=='approved')throw err('INVALID_OTP',400);
+  if(!/^\d{6}$/.test(value))throw err('INVALID_OTP');
+  db.prepare('UPDATE email_verifications SET attempt_count=attempt_count+1 WHERE id=?').run(row.id);
+  if(!timingSafeEqual(codeHash(row.id,value),row.code_hash))throw err('INVALID_OTP');
   db.transaction(()=>{
-    db.prepare("UPDATE phone_verifications SET status='verified',verified_at=? WHERE id=?").run(t,row.id);
-    db.prepare('UPDATE users SET phone_verified=1,updated_at=? WHERE id=?').run(t,row.user_id);
+    db.prepare("UPDATE email_verifications SET status='verified',verified_at=? WHERE id=?").run(t,row.id);
+    db.prepare('UPDATE users SET email_verified=1,updated_at=? WHERE id=?').run(t,row.user_id);
   })();
   return {user:db.prepare('SELECT * FROM users WHERE id=?').get(row.user_id),alreadyVerified:false};
 }
-module.exports={normalizePhone,phoneVariants,startForUser,resend,verify,OTP_TTL_MS,RESEND_MS};
+module.exports={normalizePhone,phoneVariants,mailEnabled,startForUser,resend,verify,OTP_TTL_MS,RESEND_MS};
