@@ -11,14 +11,17 @@
     "start": "node server.js",
     "migrate": "node server/scripts/migrate.js",
     "backup": "node server/scripts/backup.js",
-    "check": "node server/scripts/check.js && node server/scripts/game-selftest.js",
-    "gamecheck": "node server/scripts/game-selftest.js"
+    "check": "node server/scripts/check.js && node server/scripts/game-selftest.js && npm run build:web",
+    "gamecheck": "node server/scripts/game-selftest.js",
+    "build:web": "node tools/build-web.js",
+    "prestart": "npm run build:web"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",
     "ws": "^8.18.0",
     "zod": "^3.24.2",
     "nodemailer": "^6.9.16",
-    "resend": "^6.30.0"
+    "resend": "^6.30.0",
+    "esbuild": "^0.25.10"
   }
 }
