@@ -4,7 +4,7 @@
   if(!matchId){location.href='/';return;}
   const $=s=>document.querySelector(s);
   let ws,state=null,me=null,match=null,reconnectTimer=null,timerTick=null,rolling=false,rollPending=false,movePending=false,diceSpinTimer=null;
-  let reconnectAttempt=0,renderQueued=false,lastTimerText='',resultShown=false;
+  let reconnectAttempt=0,renderQueued=false,lastTimerText='',resultShown=false,toastTimer=null,lastTurnId=null;
   let config={turnSeconds:10,timeoutStrikes:2,disconnectGraceSeconds:15};
   const strikes=new Map(),playerNames=new Map();
   let audioCtx=null,soundEnabled=localStorage.getItem('plh_sound')!=='0';
@@ -22,7 +22,16 @@
     return d;
   }
   function hideBoot(){const b=$('#boot');if(!b)return;b.classList.add('hide');setTimeout(()=>b.remove(),180);}
-  function setConnection(text,kind=''){const e=$('#connection');if(e){e.textContent=text;e.className='connection '+kind;}}
+  function setConnection(text,kind=''){
+    const e=$('#connection');if(e){e.textContent=text;e.className='connection '+kind;}
+    const overlay=$('#netOverlay');if(overlay)overlay.classList.toggle('hidden',kind!=='bad');
+  }
+  function initials(v){const s=String(v||'P').replace(/^@/,'').trim();return (s[0]||'P').toUpperCase();}
+  function haptic(pattern=10){try{navigator.vibrate?.(pattern);}catch{}}
+  function gameToast(text,kind=''){
+    const el=$('#gameToast');if(!el)return;clearTimeout(toastTimer);el.textContent=text;el.className='game-toast '+kind;
+    requestAnimationFrame(()=>el.classList.add('show'));toastTimer=setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.classList.add('hidden'),130);},1100);
+  }
   function short(id){return String(id||'').slice(0,10)}
   function name(id){if(!id)return'—';return id===me?.id?(me?.username?('@'+me.username):'YOU'):(playerNames.get(id)||short(id))}
   function log(text){const el=$('#log');if(!el)return;const d=document.createElement('div');d.textContent=text;el.appendChild(d);while(el.children.length>40)el.firstChild.remove();el.scrollTop=el.scrollHeight;}
@@ -83,7 +92,7 @@
     if(ws&&[WebSocket.OPEN,WebSocket.CONNECTING].includes(ws.readyState))return;
     const proto=location.protocol==='https:'?'wss':'ws';
     ws=new WebSocket(proto+'://'+location.host+'/ws');
-    ws.onopen=()=>{reconnectAttempt=0;setConnection('Connected','good');send({type:'join_match',matchId,lastKnownState:state?.revision??null});};
+    ws.onopen=()=>{reconnectAttempt=0;setConnection('Connected','good');send({type:'join_match',matchId,lastKnownState:state?.revision??null});gameToast('LIVE CONNECTION RESTORED','good');};
     ws.onclose=()=>{
       setConnection('Reconnecting…','bad');
       const delay=Math.min(5000,700*Math.pow(1.55,reconnectAttempt++));
@@ -100,9 +109,9 @@
       if(state?.revision!==oldRevision){rollPending=false;movePending=false;GameRenderer.clearPending?.();}
       queueRender();return;
     }
-    if(m.type==='dice'){animateDice(m.value);sound('dice');log('🎲 '+name(m.by)+' rolled '+m.value);return;}
-    if(m.type==='move'){if(m.reachedHome)sound('home');else if(m.captured?.length)sound('capture');else sound('move');log('Token '+(Number(m.tokenId)+1)+' moved by '+name(m.by)+(m.captured?.length?' • capture!':m.reachedHome?' • home!':''));return;}
-    if(m.type==='turn'){if(state)state.deadline=m.deadline;if(m.playerId===me?.id)sound('turn');return;}
+    if(m.type==='dice'){animateDice(m.value);sound('dice');haptic(8);log('🎲 '+name(m.by)+' rolled '+m.value);return;}
+    if(m.type==='move'){if(m.reachedHome){sound('home');haptic([15,30,15]);gameToast('TOKEN HOME • EXTRA TURN','good');}else if(m.captured?.length){sound('capture');haptic([20,25,20]);gameToast('CAPTURE! • EXTRA TURN','warn');}else sound('move');log('Token '+(Number(m.tokenId)+1)+' moved by '+name(m.by)+(m.captured?.length?' • capture!':m.reachedHome?' • home!':''));return;}
+    if(m.type==='turn'){if(state)state.deadline=m.deadline;if(m.playerId===me?.id&&lastTurnId!==m.playerId){sound('turn');haptic(12);gameToast('YOUR TURN','good');}lastTurnId=m.playerId;return;}
     if(m.type==='chat'){log(name(m.by)+': '+m.text);return;}
     if(m.type==='end'){rollPending=false;movePending=false;stopDiceSpin(null);GameRenderer.clearPending?.();log('🏁 Winner: '+name(m.winnerId)+' ('+m.reason+')');showResult(m.winnerId,m.reason);return;}
     if(m.type==='error'){
@@ -119,20 +128,22 @@
     const current=state.players[state.turnSeat]?.id;
     state.players.forEach((p,i)=>{
       const el=$('#p'+i);if(!el)return;
-      const nameEl=el.querySelector('[data-name]'),strikeEl=el.querySelector('[data-strikes]');
-      if(nameEl)nameEl.textContent=p.id===me.id?(me?.username?('@'+me.username):'YOU'):(playerNames.get(p.id)||short(p.id));
+      const nameEl=el.querySelector('[data-name]'),strikeEl=el.querySelector('[data-strikes]'),avatarEl=el.querySelector('[data-avatar]'),homeEl=el.querySelector('[data-home]');
+      const playerName=p.id===me.id?(me?.username?('@'+me.username):'YOU'):(playerNames.get(p.id)||short(p.id));
+      if(nameEl)nameEl.textContent=playerName;if(avatarEl)avatarEl.textContent=initials(playerName);
+      if(homeEl)homeEl.textContent=p.tokens.filter(x=>x===57).length+' / 4 HOME';
       const s=strikes.get(p.id)||0;if(strikeEl)strikeEl.textContent=s?'⚠ '+s:'';
       el.classList.toggle('active',p.id===current&&state.phase==='active');
     });
   }
   function render(){
-    if(match)$('#stakes').textContent='ENTRY ৳'+Number(match.entryFee||0).toFixed(2)+' • BET ৳'+Number(match.betAmount||0).toFixed(2);
+    if(match){$('#stakes').textContent='ENTRY ৳'+Number(match.entryFee||0).toFixed(2)+' • BET ৳'+Number(match.betAmount||0).toFixed(2);if($('#matchCode'))$('#matchCode').textContent='MATCH '+String(match.id||matchId).slice(-8).toUpperCase();}
     const waiting=match?.status==='waiting'&&!state;
     $('#waitingOverlay')?.classList.toggle('hidden',!waiting);
     $('#cancelWaiting')?.classList.toggle('hidden',!(waiting&&match?.playerAId===me?.id));
 
     if(!state){
-      $('#status').textContent=waiting?'Waiting for opponent':'Loading match state…';
+      $('#status').textContent=waiting?'Waiting for opponent':'Loading match state…';if($('#turnBanner'))$('#turnBanner').textContent=waiting?'WAITING FOR OPPONENT':'SYNCING MATCH';if($('#rollHint'))$('#rollHint').textContent='WAITING';
       $('#turnPlayer').textContent='WAITING';$('#roll').disabled=true;
       $('#strikeText').textContent='Timeout 0 / '+Number(config.timeoutStrikes||2);
       GameRenderer.draw($('#board'),null,me?.id,moveToken);return;
@@ -143,7 +154,9 @@
     document.querySelector('.game')?.classList.toggle('viewer-green',mySeat===1);
     const station=$('#diceStation');station?.classList.toggle('blue',seat===0);station?.classList.toggle('green',seat===1);station?.classList.toggle('dock-left',seat===mySeat);station?.classList.toggle('dock-right',seat!==mySeat);
     const turnColour=$('#turnColour');if(turnColour)turnColour.textContent=finished?'MATCH END':(seat===0?'BLUE TURN':'GREEN TURN');
-    $('#turnPlayer').textContent=finished?'FINISHED':(mine?'YOU':short(current));
+    const banner=$('#turnBanner');if(banner)banner.textContent=finished?'MATCH FINISHED':(mine?'YOUR TURN':name(current)+' TURN');
+    const hint=$('#rollHint');if(hint)hint.textContent=finished?'COMPLETE':(mine?(state.rolled==null?'TAP DICE TO ROLL':'SELECT A TOKEN'):'OPPONENT PLAYING');
+    $('#turnPlayer').textContent=finished?'FINISHED':(mine?'YOU':name(current));
     $('#status').textContent=finished?'Match complete':mine?(state.rolled==null?'Your turn — roll dice':'Choose a playable token'):name(current)+"'s turn";
     $('#strikeText').textContent='Timeout '+(strikes.get(current)||0)+' / '+Number(config.timeoutStrikes||2);
     $('#roll').disabled=rollPending||rolling||finished||!mine||state.rolled!=null;
@@ -154,7 +167,7 @@
 
   function moveToken(tokenId){
     if(movePending||rollPending||!state||state.players[state.turnSeat]?.id!==me.id||state.rolled==null)return;
-    movePending=true;sound('tap');GameRenderer.markPending?.(Number(state.turnSeat||0),tokenId);
+    movePending=true;sound('tap');haptic(8);GameRenderer.markPending?.(Number(state.turnSeat||0),tokenId);
     if(!send({type:'move_token',matchId,tokenId,expectedState:state.revision})){movePending=false;GameRenderer.clearPending?.();}
   }
   function showResult(winnerId,reason){
@@ -173,7 +186,7 @@
 
   $('#roll').onclick=()=>{
     if(rollPending||rolling||!state||$('#roll').disabled)return;
-    rollPending=true;$('#roll').disabled=true;sound('tap');startDiceSpin();
+    rollPending=true;$('#roll').disabled=true;sound('tap');haptic(8);startDiceSpin();
     if(!send({type:'roll_dice',matchId,expectedState:state.revision})){rollPending=false;stopDiceSpin(null);queueRender();}
   };
   $('#soundToggle').onclick=()=>{soundEnabled=!soundEnabled;localStorage.setItem('plh_sound',soundEnabled?'1':'0');$('#soundToggle').textContent=soundEnabled?'🔊 Sound':'🔇 Sound';if(soundEnabled){ensureAudio();sound('turn');}};
@@ -197,7 +210,7 @@
     try{
       buildDice();
       const [meRes,cfg]=await Promise.all([api('/api/me'),api('/api/config')]);
-      me=meRes.user;config={...config,...cfg};startTimer();connect();setTimeout(hideBoot,220);
+      me=meRes.user;config={...config,...cfg};if($('#soundToggle'))$('#soundToggle').textContent=soundEnabled?'🔊 Sound':'🔇 Sound';startTimer();connect();setTimeout(hideBoot,220);
     }catch{location.href='/';}
   })();
 })();
