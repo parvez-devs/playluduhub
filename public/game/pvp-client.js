@@ -4,7 +4,7 @@
   if(!matchId){location.href='/';return;}
   const $=s=>document.querySelector(s);
   let ws,state=null,me=null,match=null,reconnectTimer=null,timerTick=null,rolling=false,rollPending=false,movePending=false,diceSpinTimer=null;
-  let reconnectAttempt=0,renderQueued=false,lastTimerText='',resultShown=false,toastTimer=null,lastTurnId=null;
+  let reconnectAttempt=0,renderQueued=false,lastTimerText='',resultShown=false,toastTimer=null,lastTurnId=null,presentationBusyUntil=0,presentationTimer=null;
   let config={turnSeconds:10,timeoutStrikes:2,disconnectGraceSeconds:15};
   const strikes=new Map(),playerNames=new Map();
   let audioCtx=null,soundEnabled=localStorage.getItem('plh_sound')!=='0';
@@ -72,16 +72,17 @@
     if(rolling)return;
     rolling=true;$('#roll')?.classList.add('rolling');
     clearInterval(diceSpinTimer);
-    diceSpinTimer=setInterval(()=>showDice(1+Math.floor(Math.random()*6)),lowEnd?82:68);
+    document.documentElement.classList.add('dice-spinning');
+    diceSpinTimer=setInterval(()=>showDice(1+Math.floor(Math.random()*6)),lowEnd?105:82);
   }
   function stopDiceSpin(finalValue){
     clearInterval(diceSpinTimer);diceSpinTimer=null;
     if(finalValue!=null)showDice(finalValue);
-    $('#roll')?.classList.remove('rolling');rolling=false;rollPending=false;queueRender();
+    $('#roll')?.classList.remove('rolling');document.documentElement.classList.remove('dice-spinning');rolling=false;rollPending=false;queueRender();
   }
   function animateDice(finalValue){
     if(!rolling)startDiceSpin();
-    setTimeout(()=>stopDiceSpin(finalValue),lowEnd?90:120);
+    setTimeout(()=>stopDiceSpin(finalValue),lowEnd?520:640);
   }
   function syncPlayerStats(){
     for(const p of match?.playerStats||[]){strikes.set(p.userId,Number(p.timeoutStrikes||0));if(p.username)playerNames.set(p.userId,'@'+p.username);}
@@ -110,7 +111,17 @@
       queueRender();return;
     }
     if(m.type==='dice'){animateDice(m.value);sound('dice');haptic(8);log('🎲 '+name(m.by)+' rolled '+m.value);return;}
-    if(m.type==='move'){if(m.reachedHome){sound('home');haptic([15,30,15]);gameToast('TOKEN HOME • EXTRA TURN','good');}else if(m.captured?.length){sound('capture');haptic([20,25,20]);gameToast('CAPTURE! • EXTRA TURN','warn');}else sound('move');log('Token '+(Number(m.tokenId)+1)+' moved by '+name(m.by)+(m.captured?.length?' • capture!':m.reachedHome?' • home!':''));return;}
+    if(m.type==='move'){
+      const steps=Math.max(1,Array.isArray(m.path)?m.path.length:1);
+      const hold=Math.min(1100,170+steps*118+(m.captured?.length?220:0));
+      presentationBusyUntil=Math.max(presentationBusyUntil,Date.now()+hold);
+      clearTimeout(presentationTimer);presentationTimer=setTimeout(()=>queueRender(),hold+20);
+      if(m.reachedHome){sound('home');haptic([15,30,15]);gameToast('TOKEN HOME • EXTRA TURN','good');}
+      else if(m.captured?.length){sound('capture');haptic([20,25,20]);gameToast('CAPTURE! • EXTRA TURN','warn');}
+      else sound('move');
+      log('Token '+(Number(m.tokenId)+1)+' moved by '+name(m.by)+(m.captured?.length?' • capture!':m.reachedHome?' • home!':''));
+      return;
+    }
     if(m.type==='turn'){if(state)state.deadline=m.deadline;if(m.playerId===me?.id&&lastTurnId!==m.playerId){sound('turn');haptic(12);gameToast('YOUR TURN','good');}lastTurnId=m.playerId;return;}
     if(m.type==='chat'){log(name(m.by)+': '+m.text);return;}
     if(m.type==='end'){rollPending=false;movePending=false;stopDiceSpin(null);GameRenderer.clearPending?.();log('🏁 Winner: '+name(m.winnerId)+' ('+m.reason+')');showResult(m.winnerId,m.reason);return;}
@@ -159,14 +170,15 @@
     $('#turnPlayer').textContent=finished?'FINISHED':(mine?'YOU':name(current));
     $('#status').textContent=finished?'Match complete':mine?(state.rolled==null?'Your turn — roll dice':'Choose a playable token'):name(current)+"'s turn";
     $('#strikeText').textContent='Timeout '+(strikes.get(current)||0)+' / '+Number(config.timeoutStrikes||2);
-    $('#roll').disabled=rollPending||rolling||finished||!mine||state.rolled!=null;
+    const presenting=Date.now()<presentationBusyUntil;
+    $('#roll').disabled=rollPending||rolling||presenting||finished||!mine||state.rolled!=null;
     if(state.rolled!=null&&!rolling)showDice(state.rolled);
     GameRenderer.draw($('#board'),state,me.id,moveToken);
     if(finished)showResult(state.winnerId,match?.endReason||'finished');
   }
 
   function moveToken(tokenId){
-    if(movePending||rollPending||!state||state.players[state.turnSeat]?.id!==me.id||state.rolled==null)return;
+    if(movePending||rollPending||rolling||Date.now()<presentationBusyUntil||!state||state.players[state.turnSeat]?.id!==me.id||state.rolled==null)return;
     movePending=true;sound('tap');haptic(8);GameRenderer.markPending?.(Number(state.turnSeat||0),tokenId);
     if(!send({type:'move_token',matchId,tokenId,expectedState:state.revision})){movePending=false;GameRenderer.clearPending?.();}
   }
