@@ -126,6 +126,7 @@ function migrate(){
   db.prepare("INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(1,?)").run(t);
   db.prepare("INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(2,?)").run(t);
   db.prepare("INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(3,?)").run(t);
+  db.prepare("INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(4,?)").run(t);
   db.prepare("INSERT OR IGNORE INTO admin_accounts(id,revenue_balance,updated_at) VALUES('main',0,?)").run(t);
   const defaults={welcomeBonus:0,bonusWithdrawable:false,pvpEnabled:true,entryFee:5,minBet:10,maxBet:5000,turnSeconds:10,speedTurnSeconds:7,blitzTurnSeconds:5,timeoutStrikes:2,extraTurnOnSix:true,extraTurnOnCapture:true,extraTurnOnFinish:true,minDeposit:50,maxDeposit:50000,minWithdraw:100,maxWithdraw:50000,withdrawalFeePercent:0,dailyWithdrawLimit:100000,amlThreshold:50000,appNotice:'',supportText:'',withdrawFromCash:true,dailyDepositLimit:100000,disconnectLoss:true,disconnectGraceSeconds:15,waitingMatchTtlMinutes:60,referralEnabled:true,referralBonus:0,referralGamesRequired:2,promoTitle:'Play. Win. Repeat.',promoText:'Server-authoritative Ludo with secure wallet settlement.'};
   const stmt=db.prepare('INSERT OR IGNORE INTO app_config(key,value,updated_at) VALUES(?,?,?)');
