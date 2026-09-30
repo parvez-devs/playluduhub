@@ -192,3 +192,9 @@ html.lite .preview::before{display:none}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
 }
+
+.otp-verify{margin-top:16px;padding:15px;border:1px solid #4a3866;border-radius:17px;background:linear-gradient(180deg,#171121,#100d16)}
+.otp-head{display:flex;align-items:center;gap:10px}.otp-icon{width:34px;height:34px;display:grid;place-items:center;flex:none;border-radius:50%;background:#153c2a;color:#6ce0a4;font-size:14px;font-weight:950}
+.otp-head b{display:block;font-size:11px}.otp-head small{display:block;margin-top:3px;color:#948aa0;font-size:8px;line-height:1.4}
+.otp-verify input{text-align:center;font-size:20px;font-weight:900;letter-spacing:7px;font-variant-numeric:tabular-nums}
+.otp-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}.otp-actions span{color:#8f8798;font-size:7px}.otp-actions button{border:0;background:transparent;color:#bca4ef;padding:6px;font-size:8px;font-weight:900}.otp-actions button:disabled{color:#625a69}
