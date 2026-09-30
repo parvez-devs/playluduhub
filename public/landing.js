@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-if(!document.querySelector('link[href^="/landing.css"]')){const l=document.createElement('link');l.rel='stylesheet';l.href='/landing.css?v=design-system-v9';document.head.appendChild(l);}
+if(!document.querySelector('link[href^="/landing.css"]')){const l=document.createElement('link');l.rel='stylesheet';l.href='/landing.css?v=product-v10';document.head.appendChild(l);}
 
 const GENERAL=[
   [6,13],[6,12],[6,11],[6,10],[6,9],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8],[0,7],[0,6],
