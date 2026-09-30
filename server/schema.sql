@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS users(
  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','banned')),
  avatar TEXT, display_name TEXT,
  self_excluded INTEGER NOT NULL DEFAULT 0 CHECK(self_excluded IN(0,1)), cool_off_until INTEGER,
- daily_deposit_limit INTEGER, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+ daily_deposit_limit INTEGER, phone_verified INTEGER NOT NULL DEFAULT 0 CHECK(phone_verified IN(0,1)), created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS wallets(
  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -50,5 +50,7 @@ CREATE TABLE IF NOT EXISTS audit_log(id TEXT PRIMARY KEY,actor_type TEXT NOT NUL
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC);
 CREATE TABLE IF NOT EXISTS app_config(key TEXT PRIMARY KEY,value TEXT NOT NULL,updated_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS idempotency_keys(scope TEXT NOT NULL,actor_id TEXT NOT NULL,key TEXT NOT NULL,response_status INTEGER,response_json TEXT,created_at INTEGER NOT NULL,PRIMARY KEY(scope,actor_id,key));
+CREATE TABLE IF NOT EXISTS phone_verifications(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,phone TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN('pending','verified','expired')),expires_at INTEGER NOT NULL,send_count INTEGER NOT NULL DEFAULT 1,attempt_count INTEGER NOT NULL DEFAULT 0,last_sent_at INTEGER NOT NULL,created_at INTEGER NOT NULL,verified_at INTEGER);
+CREATE INDEX IF NOT EXISTS idx_phone_verifications_user ON phone_verifications(user_id,created_at DESC);
 CREATE TABLE IF NOT EXISTS disputes(id TEXT PRIMARY KEY,match_id TEXT NOT NULL REFERENCES matches(id),opened_by TEXT REFERENCES users(id),reason TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'open' CHECK(status IN('open','resolved','rejected')),resolution TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
 
