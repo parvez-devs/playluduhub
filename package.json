@@ -1,6 +1,6 @@
 {
-  "name": "play-ludu-hub-v12",
-  "version": "12.0.0",
+  "name": "play-ludu-hub-v13",
+  "version": "13.0.0",
   "private": true,
   "type": "commonjs",
   "description": "Licensed real-money PvP Ludo platform",
