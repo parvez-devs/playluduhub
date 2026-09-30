@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#08050d">
   <title>PLAY LUDU HUB</title>
-  <link rel="stylesheet" href="/style.css?v=profile-red-v1">
+  <link rel="stylesheet" href="/style.css?v=unified-red-v6">
 </head>
 <body>
 <div id="shell">
@@ -123,39 +123,66 @@
     <section id="app" class="hidden">
       <div id="notice" class="notice hidden"></div>
 
-      <section data-page="home" class="page active">
-        <section class="hero">
-          <div class="hero-copy">
-            <span class="eyebrow">SERVER-AUTHORITATIVE LUDO</span>
-            <h1>Welcome, <span id="heroName">Player</span></h1>
-            <p>Real-time 2-player PvP with server dice, server turn control, escrowed stakes and automatic settlement.</p>
-            <div class="hero-actions">
-              <button class="cta" type="button" data-jump-create>CREATE MATCH</button>
-              <button class="ghost" type="button" data-page-target="wallet">WALLET</button>
+      <section data-page="home" class="page active dashboard-page">
+        <div class="dashboard-app-shell">
+          <header class="dashboard-head">
+            <button id="menuBtnProxy" class="dashboard-menu" type="button" aria-label="Open menu">☰</button>
+            <div><span>PLAY LUDU HUB</span><h1>Player Dashboard</h1></div>
+            <button class="dashboard-wallet" type="button" data-page-target="wallet"><small>Main Balance</small><b id="dashboardCash">৳0.00</b></button>
+          </header>
+
+          <section class="dashboard-hero">
+            <div class="dashboard-hero-copy">
+              <span class="dashboard-kicker"><i></i> LIVE PVP ARENA</span>
+              <h2>Welcome, <span id="heroName">Player</span></h2>
+              <p>Fast two-player Ludo with server dice, verified turns and real-time match settlement.</p>
+              <div class="dashboard-actions">
+                <button class="dashboard-primary" type="button" data-jump-create>CREATE MATCH <b>→</b></button>
+                <button class="dashboard-secondary" type="button" data-page-target="wallet">PAYMENT CENTER</button>
+              </div>
             </div>
-          </div>
-          <div id="heroAvatar" class="hero-avatar fallback">P</div>
-        </section>
+            <div class="dashboard-player-card">
+              <div id="heroAvatar" class="hero-avatar fallback">P</div>
+              <span>READY TO PLAY</span>
+              <b>SERVER VERIFIED</b>
+            </div>
+          </section>
 
-        <div class="stats-grid four">
-          <div class="card stat"><small>MAIN BALANCE</small><strong id="cash">৳0.00</strong></div>
-          <div class="card stat"><small>LEGACY WINNINGS</small><strong id="wins">৳0.00</strong></div>
-          <div class="card stat"><small>LOCKED</small><strong id="locked">৳0.00</strong></div>
-          <div class="card stat"><small>BONUS</small><strong id="bonus">৳0.00</strong></div>
+          <section class="dashboard-content">
+            <div class="dashboard-balance-grid">
+              <article class="dashboard-stat primary"><div><small>MAIN BALANCE</small><strong id="cash">৳0.00</strong></div><span>৳</span></article>
+              <article class="dashboard-stat"><div><small>LEGACY WINNINGS</small><strong id="wins">৳0.00</strong></div><span>W</span></article>
+              <article class="dashboard-stat"><div><small>LOCKED</small><strong id="locked">৳0.00</strong></div><span>◈</span></article>
+              <article class="dashboard-stat"><div><small>BONUS</small><strong id="bonus">৳0.00</strong></div><span>★</span></article>
+            </div>
+
+            <div class="dashboard-section-head">
+              <div><span>START A MATCH</span><h2>Create PvP Table</h2><small>Choose a bet and open a live table</small></div>
+            </div>
+
+            <article class="dashboard-create-card" id="createCard">
+              <div class="dashboard-ludo-preview" aria-hidden="true">
+                <div class="dash-board">
+                  <i class="q red"></i><i class="lane"></i><i class="q green"></i>
+                  <i class="lane"></i><i class="center"></i><i class="lane"></i>
+                  <i class="q blue"></i><i class="lane"></i><i class="q yellow"></i>
+                </div>
+                <div class="dash-preview-copy"><span>LIVE TABLE</span><b>BLUE vs GREEN</b><small>10s turns • server dice</small></div>
+              </div>
+              <form id="createMatchForm" class="dashboard-match-create">
+                <div><label>Entry fee</label><input id="entryFee" name="entryFee" type="number" readonly></div>
+                <div><label>Bet amount</label><input name="betAmount" type="number" min="1" step="0.01" required placeholder="100"></div>
+                <button class="dashboard-primary" type="submit">CREATE MATCH <b>→</b></button>
+              </form>
+            </article>
+
+            <div class="dashboard-section-head lobby-head">
+              <div><span>LIVE ARENA</span><h2>Open Tables</h2><small>Join a waiting player instantly</small></div>
+              <button id="refreshLobby" class="dashboard-refresh" type="button">↻ Refresh</button>
+            </div>
+            <div id="lobby" class="match-list dashboard-match-list"></div>
+          </section>
         </div>
-
-        <div class="section-title"><div><span class="eyebrow">LIVE ARENA</span><h2>PvP Lobby</h2></div><button id="refreshLobby" class="mini ghost" type="button">Refresh</button></div>
-
-        <article class="game-card featured" id="createCard">
-          <div class="preview html5-preview"><span>HTML5 + WEBSOCKET</span><b>PRO PVP LUDO</b><em>10s turn control • secure escrow</em></div>
-          <form id="createMatchForm" class="match-create">
-            <div><label>Entry fee</label><input id="entryFee" name="entryFee" type="number" readonly></div>
-            <div><label>Bet amount</label><input name="betAmount" type="number" min="1" step="0.01" required placeholder="100"></div>
-            <button class="cta" type="submit">CREATE MATCH</button>
-          </form>
-        </article>
-
-        <div id="lobby" class="match-list"></div>
       </section>
 
       <section data-page="wallet" class="page payment-page">
@@ -423,9 +450,9 @@
 
   <div id="toast" class="toast hidden"></div>
 </div>
-<script src="/landing.js?v=12-landing-1"></script>
-<script src="/app.js?v=auth-v3"></script>
+<script src="/landing.js?v=arena-red-v2"></script>
+<script src="/app.js?v=unified-red-v6"></script>
 <script src="/wallet.js?v=wallet-v4"></script>
-<script src="/pvp-lobby.js?v=12-premium-final-1"></script>
+<script src="/pvp-lobby.js?v=unified-red-v6"></script>
 </body>
 </html>
