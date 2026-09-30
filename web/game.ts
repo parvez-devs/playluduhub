@@ -1,5 +1,6 @@
 import './game.css';
 import './real-theme.css';
+import {viewerSeatFor,visualSeatFor,rotateCoordForViewer} from './game-view.js';
 
 const root=document.querySelector<HTMLDivElement>('#root');
 if(!root)throw new Error('ROOT_NOT_FOUND');
@@ -144,11 +145,11 @@ function diceHtml(n:number){const on=PIPS[n]||[];return Array.from({length:9},(_
 function showDice(n:number){const f=$('#diceFace');if(f)f.innerHTML=diceHtml(n)}
 function spinDice(final:number){rolling=true;$('#roll')?.classList.add('rolling');clearInterval(diceSpin);diceSpin=setInterval(()=>showDice(1+Math.floor(Math.random()*6)),86);setTimeout(()=>{clearInterval(diceSpin);showDice(final);rolling=false;rollPending=false;$('#roll')?.classList.remove('rolling');render()},720)}
 function canMove(p:number,d:number|null){if(d==null||p===57)return false;if(p===-1)return d===6;return p+d<=57}
-function viewerSeat(){return state?.players.findIndex(x=>x.id===me?.id)===1?1:0}
-function visualSeat(serverSeat:number){return serverSeat===viewerSeat()?0:1}
+function viewerSeat(){return viewerSeatFor(state?.players||[],me?.id)}
+function visualSeat(serverSeat:number){return visualSeatFor(serverSeat,viewerSeat())}
 function visualColour(serverSeat:number){return visualSeat(serverSeat)===0?'#168fd6':'#139b55'}
 function coord(seat:number,p:number,id:number){if(p===-1)return YARD[seat][id];if(p<52)return GENERAL[(p+(seat===1?26:0))%52];return HOME[seat][Math.max(0,Math.min(5,p-52))]}
-function visibleCoord(seat:number,p:number,id:number){const c=coord(seat,p,id);return viewerSeat()===1?[14-c[0],14-c[1]]:c}
+function visibleCoord(seat:number,p:number,id:number){return rotateCoordForViewer(coord(seat,p,id),viewerSeat())}
 function buildBoard(){
   const art=$('#boardArt');if(!art||art.childElementCount)return;
   const yard=(n:string)=>'<div class="yard '+n+'"><div class="yard-inner"><span class="yard-hole"></span><span class="yard-hole"></span><span class="yard-hole"></span><span class="yard-hole"></span></div></div>';
