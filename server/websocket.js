@@ -10,6 +10,7 @@ function attach(server){
     ws.on('close',()=>{for(const id of ws.joined){leaveRoom(ws,id); pvp.connected(id,ws.userId,false);}});
   });
   function handle(ws,m){
+    if(m.type==='ping'){send(ws,{type:'pong',at:Number(m.at)||Date.now(),serverAt:Date.now()});return;}
     if(m.type==='join_match'){const matchId=String(m.matchId||''); const mr=pvp.getMatch(matchId); if(mr.player_a_id!==ws.userId&&mr.player_b_id!==ws.userId)throw code('NOT_MATCH_PLAYER'); joinRoom(ws,matchId); pvp.connected(matchId,ws.userId,true); send(ws,{type:'state',state:mr.state_json?JSON.parse(mr.state_json):null,match:pvp.serializeMatch(mr)}); return;}
     const matchId=String(m.matchId|| (ws.joined.size===1?[...ws.joined][0]:'') ); if(!ws.joined.has(matchId))throw code('JOIN_MATCH_FIRST');
     if(m.type==='roll_dice'){pvp.roll(ws.userId,matchId,m.expectedState);return;}
