@@ -1,4 +1,5 @@
 import './player.css';
+import './real-theme.css';
 
 type AnyObj=Record<string,any>;
 type Page='home'|'wallet'|'profile';
