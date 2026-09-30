@@ -1,6 +1,8 @@
-# 🎲 PLAY LUDU HUB v12
+# 🎲 PLAY LUDU HUB v13
 
-**Server-authoritative 2-player PvP Ludo with manual bKash/Nagad payments, Telegram approvals, SQLite ledger, Admin Hub, WebSocket gameplay, AML controls, and Termux/VPS deployment.**
+**Server-authoritative 2-player PvP Ludo with manual bKash/Nagad payments, Telegram approvals, premium real-arena UI, WebSocket gameplay, AML controls, and a staged SQLite → Supabase Postgres migration.**
+
+> v13 migration rule: Railway remains the authoritative game/server layer. Supabase becomes the durable Postgres/Auth foundation only after schema, RLS, money invariants and data migration are verified.
 
 > Current payment mode: **MANUAL**  
 > No bKash/Nagad gateway API, API key, payout API, or payment webhook is required.
