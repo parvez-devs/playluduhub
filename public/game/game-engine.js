@@ -115,6 +115,7 @@
     const version=(animationVersion.get(k)||0)+1;animationVersion.set(k,version);
     if(to===-1&&from>=0){
       el.classList.add('captured');
+      window.dispatchEvent(new CustomEvent('plh:token-captured',{detail:{seat,tokenId:i}}));
       setTimeout(()=>{if(animationVersion.get(k)!==version)return;setPosition(el,seat,-1,i);el.classList.remove('captured');},CAPTURE_MS);
       return;
     }
@@ -127,7 +128,14 @@
       if(animationVersion.get(k)!==version||n>=seq.length)return;
       const p=seq[n++],off=n===seq.length?finalOffset:[0,0];
       setPosition(el,seat,p,i,off);
+      el.classList.remove('stepping');void el.offsetWidth;el.classList.add('stepping');
+      window.dispatchEvent(new CustomEvent('plh:token-step',{detail:{seat,tokenId:i,progress:p}}));
+      if(p===57){
+        el.classList.add('home-arrival');
+        setTimeout(()=>el.classList.remove('home-arrival'),520);
+      }
       if(n<seq.length)setTimeout(step,STEP_MS);
+      else setTimeout(()=>el.classList.remove('stepping'),STEP_MS);
     };
     step();
   }
