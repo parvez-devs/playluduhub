@@ -27,7 +27,7 @@
   ]);
   const tokenEls=new Map(),lastProgress=new Map(),lastPlacement=new Map(),animationVersion=new Map();
   let boardRef=null,stateRef=null,myIdRef=null,onTokenRef=null,resizeQueued=false,cellPx=0,viewerSeat=0;
-  const STEP_MS=52;
+  const STEP_MS=42;
 
   function key(x,y){return x+','+y;}
   function tokenKey(seat,i){return seat+':'+i;}
@@ -139,7 +139,7 @@
     boardRef=board;stateRef=state;myIdRef=myId;onTokenRef=onToken;buildBoard(board);
     viewerSeat=state?.players?.findIndex(p=>p.id===myId)===1?1:0;
     board.classList.toggle('viewer-green',viewerSeat===1);
-    cellPx=board.clientWidth/15;
+    if(!cellPx)cellPx=board.clientWidth/15;
     const layer=board.querySelector('#tokenLayer');
     if(!state?.players){
       for(const el of tokenEls.values())el.remove();
