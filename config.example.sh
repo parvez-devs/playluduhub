@@ -26,17 +26,22 @@ export BACKUP_DIR='./data/backups'
 # Set 1 only behind a trusted reverse proxy that overwrites forwarding headers.
 export TRUST_PROXY='0'
 
+# Email OTP verification (free-friendly via Gmail SMTP / any SMTP provider)
+# Keep 0 until SMTP credentials are configured, then set 1.
+export EMAIL_OTP_REQUIRED='0'
+export EMAIL_SMTP_HOST='smtp.gmail.com'
+export EMAIL_SMTP_PORT='465'
+export EMAIL_SMTP_SECURE='1'
+export EMAIL_SMTP_USER=''
+# For Gmail, use an App Password here — never your normal Gmail password.
+export EMAIL_SMTP_PASS=''
+export EMAIL_FROM='PLAY LUDU HUB <your-email@gmail.com>'
 
-# Phone OTP verification (Twilio Verify v2)
-# Keep 0 until Twilio credentials are configured. Set 1 to require OTP for every new signup.
-export PHONE_OTP_REQUIRED='0'
-# Create a Verify Service in Twilio, then set either API Key/Secret or Account SID/Auth Token.
-export TWILIO_VERIFY_SERVICE_SID=''
-export TWILIO_ACCOUNT_SID=''
-export TWILIO_AUTH_TOKEN=''
-# Recommended alternative to Account SID/Auth Token:
-export TWILIO_API_KEY=''
-export TWILIO_API_SECRET=''
+# Google OAuth
+# Authorized redirect URI:
+# https://your-domain.example/api/auth/google/callback
+export GOOGLE_CLIENT_ID=''
+export GOOGLE_CLIENT_SECRET=''
 
-# Development only. Never set OTP_DEV_CODE in production.
-export OTP_DEV_CODE=''
+# Development only. Never set EMAIL_OTP_DEV_CODE in production.
+export EMAIL_OTP_DEV_CODE=''
