@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-if(!document.querySelector('link[href^="/landing.css"]')){const l=document.createElement('link');l.rel='stylesheet';l.href='/landing.css?v=design-system-v8';document.head.appendChild(l);}
+if(!document.querySelector('link[href^="/landing.css"]')){const l=document.createElement('link');l.rel='stylesheet';l.href='/landing.css?v=design-system-v9';document.head.appendChild(l);}
 
 const GENERAL=[
   [6,13],[6,12],[6,11],[6,10],[6,9],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8],[0,7],[0,6],
@@ -79,10 +79,10 @@ const landing=`<section id="landing" class="landing">
         <div class="landing-cta"><button id="landingPlayHero" class="landing-btn primary big" type="button">PLAY NOW <b>→</b></button><button id="landingExplore" class="landing-btn secondary big" type="button">LIVE TABLES</button></div>
         <div class="landing-trust"><span>Server dice</span><span>10s turn control</span><span>Live table status</span></div>
       </div>
-      <div class="hero-board-shell">
-        <div class="hero-table-top"><span><i></i> LIVE TABLE PREVIEW</span><b>SERVER VERIFIED</b></div>
-        ${board({turnSeat:0,rolled:6,players:[{seat:0,tokens:[0,9,25,-1]},{seat:1,tokens:[0,14,31,-1]}]},true)}
-        <div class="hero-table-footer"><div><small>BLUE</small><b>Player 1</b></div><strong>VS</strong><div><small>GREEN</small><b>Player 2</b></div></div>
+      <div class="hero-board-shell" id="heroBoardShell">
+        <div class="hero-table-top"><span><i></i> <b id="heroPreviewLabel">DEMO PREVIEW</b></span><b id="heroPreviewStatus">SERVER VERIFIED</b></div>
+        <div id="heroArenaBoard">${board({turnSeat:0,rolled:6,players:[{seat:0,tokens:[0,9,25,-1]},{seat:1,tokens:[0,14,31,-1]}]},true)}</div>
+        <div class="hero-table-footer"><div><small>BLUE</small><b>Blue player</b></div><strong id="heroPreviewMeta">DEMO</strong><div><small>GREEN</small><b>Green player</b></div></div>
       </div>
     </section>
 
@@ -110,15 +110,44 @@ function tile(m,i){
     <div class="live-clock"><span>${active?'MATCH TIME':'WAITING TIME'}</span><b data-clock>${fmtTime(Date.now()-started)}</b></div>
   </article>`;
 }
-function standby(){
-  return Array.from({length:4},(_,i)=>`<article class="live-tile" data-status="standby">
-    <div class="live-tile-head"><div><small>TABLE</small><b>#${i+1}</b></div><span class="live-status">STANDBY</span></div>
-    ${board(null)}
-    <div class="live-money"><div><small>BET</small><strong>—</strong></div><div><small>ENTRY</small><strong>—</strong></div></div>
-    <div class="live-clock"><span>STATUS</span><b>READY</b></div>
-  </article>`).join('');
+function emptyArena(){
+  return `<div class="live-empty">
+    <div class="live-empty-icon">♜</div>
+    <div><span>ARENA READY</span><h3>No public tables right now</h3><p>There is no active or waiting table at this moment. Sign in to create the next PvP match.</p></div>
+    <button type="button" data-empty-play>CREATE A TABLE <b>→</b></button>
+  </div>`;
 }
-function render(){const box=$('#publicLiveMatches');if(!box)return;box.innerHTML=matches.length?matches.slice(0,4).map(tile).join(''):standby();}
+function updateHero(){
+  const live=matches.find(x=>x.status==='active'&&x.board);
+  const waiting=!live&&matches.find(x=>x.status==='waiting');
+  const host=$('#heroArenaBoard'),label=$('#heroPreviewLabel'),meta=$('#heroPreviewMeta'),status=$('#heroPreviewStatus');
+  if(!host)return;
+  if(live){
+    host.innerHTML=board(live.board,true);
+    if(label)label.textContent='LIVE MATCH PREVIEW';
+    if(meta)meta.textContent='TABLE #'+String(live.tableNumber||1)+' • '+money(live.betAmount)+' BET';
+    if(status)status.textContent='LIVE • SERVER VERIFIED';
+    return;
+  }
+  if(waiting){
+    host.innerHTML=board(null,true);
+    if(label)label.textContent='WAITING TABLE';
+    if(meta)meta.textContent='TABLE #'+String(waiting.tableNumber||1)+' • WAITING';
+    if(status)status.textContent='SERVER VERIFIED';
+    return;
+  }
+  host.innerHTML=board({turnSeat:0,rolled:6,players:[{seat:0,tokens:[0,9,25,-1]},{seat:1,tokens:[0,14,31,-1]}]},true);
+  if(label)label.textContent='DEMO PREVIEW';
+  if(meta)meta.textContent='DEMO';
+  if(status)status.textContent='SERVER VERIFIED';
+}
+function render(){
+  const box=$('#publicLiveMatches');if(!box)return;
+  box.classList.toggle('is-empty',!matches.length);
+  box.innerHTML=matches.length?matches.slice(0,4).map(tile).join(''):emptyArena();
+  box.querySelector('[data-empty-play]')?.addEventListener('click',toAuth);
+  updateHero();
+}
 async function load(){
   try{
     const r=await fetch('/api/public/arena',{headers:{accept:'application/json'},cache:'no-store'});
