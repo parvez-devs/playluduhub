@@ -24,7 +24,9 @@ function phoneVariants(e164){
   if(/^\+8801\d{9}$/.test(e164))out.add(e164.slice(3));
   return [...out];
 }
-function mailEnabled(){return !!(process.env.EMAIL_SMTP_USER&&process.env.EMAIL_SMTP_PASS);}
+function httpsMailEnabled(){return !!(process.env.EMAIL_HTTPS_ENDPOINT&&process.env.EMAIL_HTTPS_SECRET);}
+function smtpMailEnabled(){return !!(process.env.EMAIL_SMTP_USER&&process.env.EMAIL_SMTP_PASS);}
+function mailEnabled(){return httpsMailEnabled()||smtpMailEnabled();}
 function mailer(){
   if(!mailEnabled())throw err('EMAIL_OTP_NOT_CONFIGURED',503);
   if(transporter)return transporter;
@@ -42,20 +44,46 @@ function secret(){const s=process.env.SESSION_SECRET||'';if(!s)throw err('SESSIO
 function codeHash(id,code){return hmac(secret(),id+':'+String(code));}
 function makeCode(){return String(crypto.randomInt(100000,1000000));}
 function maskEmail(email){const [a,b]=String(email).split('@');if(!b)return email;return (a.slice(0,2)||'*')+'***@'+b;}
+function messageFor(code){
+  return {
+    subject:'PLAY LUDU HUB verification code',
+    text:'Your PLAY LUDU HUB verification code is '+code+'. It expires in 10 minutes. Do not share this code.',
+    html:'<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:28px;background:#101018;color:#fff;border-radius:18px"><div style="font-size:12px;letter-spacing:2px;color:#b8a0ff">PLAY LUDU HUB</div><h2 style="margin:8px 0 4px">Verify your email</h2><p style="color:#b8b3c0">Use this one-time code to finish creating your account.</p><div style="font-size:34px;font-weight:800;letter-spacing:8px;padding:18px 0;color:#fff">'+code+'</div><p style="color:#8f8997;font-size:12px">This code expires in 10 minutes. Do not share it with anyone.</p></div>'
+  };
+}
+async function sendHttps(email,code){
+  const endpoint=String(process.env.EMAIL_HTTPS_ENDPOINT||'').trim(),secret=String(process.env.EMAIL_HTTPS_SECRET||'');
+  if(!endpoint||!secret)throw err('EMAIL_OTP_NOT_CONFIGURED',503);
+  const msg=messageFor(code);
+  let r;
+  try{
+    r=await fetch(endpoint,{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({secret,to:email,fromName:'PLAY LUDU HUB',subject:msg.subject,text:msg.text,html:msg.html}),
+      signal:AbortSignal.timeout(12000)
+    });
+  }catch(e){console.error('email https send',e?.message||e);throw err('EMAIL_OTP_SEND_FAILED',503);}
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok||data.ok!==true){console.error('email https provider error',r.status,data?.error||'unknown');throw err('EMAIL_OTP_SEND_FAILED',503);}
+}
 async function sendCode(email,code){
   if(process.env.NODE_ENV!=='production'&&process.env.EMAIL_OTP_DEV_CODE){
     console.log('[email-otp-dev]',email,process.env.EMAIL_OTP_DEV_CODE);
     return;
   }
   try{
+    if(httpsMailEnabled())return await sendHttps(email,code);
+    if(!smtpMailEnabled())throw err('EMAIL_OTP_NOT_CONFIGURED',503);
+    const msg=messageFor(code);
     await mailer().sendMail({
       from:process.env.EMAIL_FROM||('PLAY LUDU HUB <'+process.env.EMAIL_SMTP_USER+'>'),
-      to:email,
-      subject:'PLAY LUDU HUB verification code',
-      text:'Your PLAY LUDU HUB verification code is '+code+'. It expires in 10 minutes. Do not share this code.',
-      html:'<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:28px;background:#101018;color:#fff;border-radius:18px"><div style="font-size:12px;letter-spacing:2px;color:#b8a0ff">PLAY LUDU HUB</div><h2 style="margin:8px 0 4px">Verify your email</h2><p style="color:#b8b3c0">Use this one-time code to finish creating your account.</p><div style="font-size:34px;font-weight:800;letter-spacing:8px;padding:18px 0;color:#fff">'+code+'</div><p style="color:#8f8997;font-size:12px">This code expires in 10 minutes. Do not share it with anyone.</p></div>'
+      to:email,subject:msg.subject,text:msg.text,html:msg.html
     });
-  }catch(e){console.error('email otp send',e?.message||e);throw err('EMAIL_OTP_SEND_FAILED',503);}
+  }catch(e){
+    if(e?.code==='EMAIL_OTP_NOT_CONFIGURED')throw e;
+    console.error('email otp send',e?.message||e);throw err('EMAIL_OTP_SEND_FAILED',503);
+  }
 }
 function getSession(id){
   const row=db.prepare('SELECT * FROM email_verifications WHERE id=?').get(String(id||''));
