@@ -55,6 +55,18 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(214,31,44,.16);o
 .yard-hole{position:absolute;width:22%;aspect-ratio:1;border:1px solid #4d4d4d;border-radius:50%;background:var(--yc);transform:translate(-50%,-50%);box-shadow:inset 0 1px 2px #fff8,0 2px 3px #0002}.yard-hole:nth-child(1){left:28%;top:28%}.yard-hole:nth-child(2){left:72%;top:28%}.yard-hole:nth-child(3){left:28%;top:72%}.yard-hole:nth-child(4){left:72%;top:72%}
 .home-center{position:absolute;left:40%;top:40%;width:20%;height:20%;z-index:3}.home-center .tri{position:absolute;inset:0}.home-center .tri.blue{background:var(--blue);clip-path:polygon(0 100%,50% 50%,100% 100%)}.home-center .tri.red{background:var(--red);clip-path:polygon(0 0,50% 50%,0 100%)}.home-center .tri.green{background:var(--green);clip-path:polygon(100% 0,50% 50%,0 0)}.home-center .tri.yellow{background:var(--yellow);clip-path:polygon(100% 100%,50% 50%,100% 0)}
 
+/* Player 2 gets the same local visual convention as Player 1:
+   own seat = BLUE at the near-left yard, opponent = GREEN opposite.
+   The board is rotated for seat 1, so swap only Blue/Green paint after rotation. */
+.game.viewer-green .yard.green{--yc:var(--blue)}
+.game.viewer-green .yard.blue{--yc:var(--green)}
+.game.viewer-green .board-cell.start-green{background:#a8dcf8}
+.game.viewer-green .board-cell.start-blue{background:#a6e2bf}
+.game.viewer-green .board-cell.home-green{background:#74c2ef}
+.game.viewer-green .board-cell.home-blue{background:#71cb97}
+.game.viewer-green .home-center .tri.green{background:var(--blue)}
+.game.viewer-green .home-center .tri.blue{background:var(--green)}
+
 .token{--token-colour:#fff;--scale:1;position:absolute;left:0;top:0;z-index:14;width:calc(100% / 15 * .84);height:calc(100% / 15 * .88);padding:0;border:0;background:none;pointer-events:auto;touch-action:manipulation;will-change:transform;transform:translate3d(var(--tx,0px),var(--ty,0px),0) translate(-50%,-50%) scale(var(--scale));transition:transform .105s cubic-bezier(.2,.75,.25,1),opacity .15s ease;filter:drop-shadow(0 2px 1px rgba(0,0,0,.24))}
 .token:disabled{pointer-events:none}.token svg{width:100%;height:100%;display:block;overflow:visible}.token-number{position:absolute;left:50%;top:31%;transform:translate(-50%,-50%);color:#fff;font-size:clamp(5px,1vw,8px);font-weight:950;text-shadow:0 1px 2px #000;pointer-events:none}
 .token.pending-move{--scale:.88;opacity:.76}.token.captured{--scale:.68;opacity:.35}.token.playable{z-index:22;--scale:1.08}.token.playable svg{filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 4px var(--token-colour))}
