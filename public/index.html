@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#08050d">
   <title>PLAY LUDU HUB</title>
-  <link rel="stylesheet" href="/style.css?v=wallet-v4">
+  <link rel="stylesheet" href="/style.css?v=profile-red-v1">
 </head>
 <body>
 <div id="shell">
@@ -296,88 +296,121 @@
       </section>
 
       <section data-page="profile" class="page profile-page premium-profile-page">
-        <header class="profile-page-title">
-          <button class="profile-back" type="button" data-page-target="home" aria-label="Back">‹</button>
-          <div><span>MEMBER CENTER</span><h1>আমার অ্যাকাউন্ট</h1></div>
-          <button id="profileRefresh" class="profile-refresh" type="button" aria-label="Refresh">↻</button>
-        </header>
-
-        <section class="profile-hero-card">
-          <div class="profile-watermark">♛</div>
-          <div class="profile-main-row">
-            <div id="profileAvatar" class="profile-avatar premium-profile-avatar fallback">P</div>
-            <div class="profile-identity">
-              <span class="member-badge">★ PVP MEMBER</span>
-              <div class="profile-phone-row"><strong id="profilePhone">01XXXXXXXXX</strong><button id="copyProfilePhone" type="button" aria-label="Copy phone">▣</button></div>
-              <p>ডাকনাম: <b id="profileUser">@player</b></p>
-              <small>যোগদান করেছেন: <span id="profileJoined">—</span></small>
+        <div class="profile-app-shell">
+          <header class="profile-page-head">
+            <button class="profile-back" type="button" data-page-target="home" aria-label="Back">‹</button>
+            <div>
+              <span class="profile-kicker">MEMBER CENTER</span>
+              <h1>আমার অ্যাকাউন্ট</h1>
             </div>
-          </div>
+            <button id="profileRefresh" class="profile-head-refresh" type="button" aria-label="Refresh">↻</button>
+          </header>
 
-          <div class="profile-balance-row">
-            <div><small>প্রধান ব্যালেন্স</small><strong id="profileCash">৳0.00</strong></div>
-            <button id="profileBalanceRefresh" type="button" aria-label="Refresh balance">↻</button>
-          </div>
+          <section class="profile-summary-card">
+            <div class="profile-main-row">
+              <div id="profileAvatar" class="profile-avatar premium-profile-avatar fallback">P</div>
+              <div class="profile-identity">
+                <span class="member-badge">★ VERIFIED MEMBER</span>
+                <div class="profile-phone-row">
+                  <strong id="profilePhone">01XXXXXXXXX</strong>
+                  <button id="copyProfilePhone" type="button" aria-label="Copy phone">▣</button>
+                </div>
+                <p><b id="profileUser">@player</b></p>
+                <small>যোগদান: <span id="profileJoined">—</span></small>
+              </div>
+            </div>
 
-          <div class="profile-quick-actions">
-            <button type="button" data-wallet-open="deposit">জমা দিন</button>
-            <button type="button" data-wallet-open="withdraw">উত্তোলন</button>
-            <button type="button" data-profile-jump="account">আমার অ্যাকাউন্ট</button>
-          </div>
-        </section>
+            <div class="profile-balance-card">
+              <div>
+                <small>প্রধান ব্যালেন্স</small>
+                <strong id="profileCash">৳0.00</strong>
+                <span>Available Main Balance</span>
+              </div>
+              <button id="profileBalanceRefresh" type="button" aria-label="Refresh balance">↻</button>
+            </div>
 
-        <div class="member-section-head"><span>সদস্য সেন্টার</span><i></i></div>
-        <div class="member-grid">
-          <button type="button" data-wallet-open="deposit"><i>＋</i><span>জমা দিন</span></button>
-          <button type="button" data-wallet-open="withdraw"><i>⇧</i><span>উত্তোলন</span></button>
-          <button type="button" data-profile-jump="records"><i>▤</i><span>পেমেন্ট রেকর্ড</span></button>
-          <button type="button" data-profile-jump="account"><i>◎</i><span>আমার অ্যাকাউন্ট</span></button>
-          <button type="button" data-profile-jump="safety"><i>♢</i><span>সুরক্ষা কেন্দ্র</span></button>
-          <button type="button" data-page-target="home"><i>♜</i><span>PvP Arena</span></button>
-          <button type="button" data-profile-jump="support"><i>?</i><span>সাহায্য কেন্দ্র</span></button>
-          <button type="button" id="profileLogoutShortcut"><i>↪</i><span>লগআউট</span></button>
+            <div class="profile-quick-actions">
+              <button type="button" data-wallet-open="deposit"><span>＋</span><b>জমা দিন</b></button>
+              <button type="button" data-wallet-open="withdraw"><span>⇧</span><b>উত্তোলন</b></button>
+              <button type="button" data-profile-jump="account"><span>◎</span><b>অ্যাকাউন্ট</b></button>
+            </div>
+          </section>
+
+          <section class="profile-content">
+            <div class="profile-section-title">
+              <i></i><div><b>সদস্য সেন্টার</b><small>আপনার account tools এবং records</small></div>
+            </div>
+
+            <div class="member-grid">
+              <button type="button" data-wallet-open="deposit"><i>＋</i><span>জমা দিন</span></button>
+              <button type="button" data-wallet-open="withdraw"><i>⇧</i><span>উত্তোলন</span></button>
+              <button type="button" data-profile-jump="records"><i>▤</i><span>পেমেন্ট রেকর্ড</span></button>
+              <button type="button" data-profile-jump="account"><i>◎</i><span>আমার অ্যাকাউন্ট</span></button>
+              <button type="button" data-profile-jump="safety"><i>♢</i><span>সুরক্ষা কেন্দ্র</span></button>
+              <button type="button" data-page-target="home"><i>♜</i><span>PvP Arena</span></button>
+              <button type="button" data-profile-jump="support"><i>?</i><span>সাহায্য কেন্দ্র</span></button>
+              <button type="button" id="profileLogoutShortcut"><i>↪</i><span>লগআউট</span></button>
+            </div>
+
+            <article id="profileAccountCard" class="profile-detail-card">
+              <div class="detail-card-head">
+                <div><span>ACCOUNT INFORMATION</span><h2 id="profileName">Player</h2></div>
+                <span id="profileStatus" class="profile-status">APPROVED</span>
+              </div>
+
+              <div class="profile-contact-grid">
+                <div><small>Username</small><b id="profileUsernameText">@player</b></div>
+                <div><small>Email</small><b id="profileEmail">—</b></div>
+              </div>
+
+              <form id="profileForm" class="profile-form premium-profile-form">
+                <div class="two">
+                  <div><label>Display name</label><input name="displayName" placeholder="Optional display name"></div>
+                  <div><label>Avatar URL</label><input name="avatar" type="url" placeholder="https://..."></div>
+                </div>
+                <button class="profile-save" type="submit">প্রোফাইল সংরক্ষণ করুন <b>→</b></button>
+              </form>
+            </article>
+
+            <article id="profileRecordsCard" class="profile-detail-card profile-record-card">
+              <div class="detail-card-head">
+                <div><span>WALLET OVERVIEW</span><h2>লেনদেন সারাংশ</h2></div>
+              </div>
+              <div class="record-summary-grid">
+                <div><small>মোট জমা</small><b id="profileTotalDeposited">৳0.00</b></div>
+                <div><small>মোট উত্তোলন</small><b id="profileTotalWithdrawn">৳0.00</b></div>
+                <div><small>Locked</small><b id="profileLocked">৳0.00</b></div>
+                <div><small>Bonus</small><b id="profileBonus">৳0.00</b></div>
+              </div>
+              <button class="detail-link-btn" type="button" data-wallet-open="deposit">Payment Center খুলুন <b>→</b></button>
+            </article>
+
+            <article id="profileSafetyCard" class="profile-detail-card">
+              <div class="detail-card-head">
+                <div><span>RESPONSIBLE PLAY</span><h2>সুরক্ষা কেন্দ্র</h2></div>
+              </div>
+              <div class="profile-info-alert">
+                <span>!</span>
+                <p>Cool-off সাময়িকভাবে নতুন game/deposit বন্ধ করে। Self-exclusion আরও restrictive safety control—ব্যবহারের আগে নিশ্চিত হন।</p>
+              </div>
+              <div class="safety-actions premium-safety">
+                <button id="coolOff" class="profile-secondary-action" type="button">24H COOL-OFF</button>
+                <button id="selfExclude" class="profile-danger-action" type="button">SELF-EXCLUDE</button>
+              </div>
+            </article>
+
+            <article id="profileSupportCard" class="profile-detail-card support-card">
+              <div class="support-symbol">?</div>
+              <div>
+                <span>SUPPORT</span>
+                <h2>সাহায্য দরকার?</h2>
+                <p id="profileSupportText">Payment বা account issue হলে support information এখানে দেখানো হবে।</p>
+              </div>
+            </article>
+
+            <button id="logout" class="premium-logout" type="button">লগআউট</button>
+          </section>
         </div>
-
-        <article id="profileAccountCard" class="profile-detail-card">
-          <div class="detail-card-head"><div><span>ACCOUNT</span><h2 id="profileName">Player</h2></div><span id="profileStatus" class="profile-status">APPROVED</span></div>
-          <div class="profile-contact-grid">
-            <div><small>Username</small><b id="profileUsernameText">@player</b></div>
-            <div><small>Email</small><b id="profileEmail">—</b></div>
-          </div>
-          <form id="profileForm" class="profile-form premium-profile-form">
-            <div class="two">
-              <div><label>Display name</label><input name="displayName" placeholder="Optional display name"></div>
-              <div><label>Avatar URL</label><input name="avatar" type="url" placeholder="https://..."></div>
-            </div>
-            <button class="profile-save" type="submit">প্রোফাইল সংরক্ষণ করুন</button>
-          </form>
-        </article>
-
-        <article id="profileRecordsCard" class="profile-detail-card profile-record-card">
-          <div class="detail-card-head"><div><span>RECORDS</span><h2>লেনদেন সারাংশ</h2></div></div>
-          <div class="record-summary-grid">
-            <div><small>মোট জমা</small><b id="profileTotalDeposited">৳0.00</b></div>
-            <div><small>মোট উত্তোলন</small><b id="profileTotalWithdrawn">৳0.00</b></div>
-            <div><small>Locked</small><b id="profileLocked">৳0.00</b></div>
-            <div><small>Bonus</small><b id="profileBonus">৳0.00</b></div>
-          </div>
-          <button class="detail-link-btn" type="button" data-wallet-open="deposit">Deposit / Withdrawal records দেখুন →</button>
-        </article>
-
-        <article id="profileSafetyCard" class="profile-detail-card">
-          <div class="detail-card-head"><div><span>RESPONSIBLE PLAY</span><h2>সুরক্ষা কেন্দ্র</h2></div></div>
-          <p class="safety-copy">Cool-off সাময়িকভাবে নতুন game/deposit বন্ধ করে। Self-exclusion একটি restrictive safety control—ব্যবহার করার আগে নিশ্চিত হন।</p>
-          <div class="safety-actions premium-safety">
-            <button id="coolOff" class="ghost" type="button">24H COOL-OFF</button>
-            <button id="selfExclude" class="danger" type="button">SELF-EXCLUDE</button>
-          </div>
-        </article>
-
-        <article id="profileSupportCard" class="profile-detail-card support-card">
-          <div><span>SUPPORT</span><h2>সাহায্য দরকার?</h2><p id="profileSupportText">Payment বা account issue হলে support information এখানে দেখানো হবে।</p></div>
-        </article>
-
-        <button id="logout" class="logout-btn premium-logout" type="button">লগআউট</button>
       </section>
     </section>
   </main>
