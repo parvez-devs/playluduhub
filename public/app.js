@@ -108,7 +108,7 @@ function showApp(me){
   setText('#heroName',u.displayName||u.name||u.username);setText('#drawerName',u.displayName||u.name||u.username);setText('#drawerUser','@'+u.username);
   setText('#profileName',u.displayName||u.name||u.username);setText('#profileUser','@'+u.username);setText('#profileUsernameText','@'+u.username);
   setText('#profilePhone',u.phone||'—');setText('#profileEmail',u.email||'—');setText('#profileJoined',fmtDate(u.createdAt));setText('#profileStatus',String(u.status||'approved').toUpperCase());
-  const vals={cash:w.cashBalance,wins:w.winningsBalance,locked:w.lockedBalance,bonus:w.bonusBalance,topBalance:w.cashBalance,walletHeroCash:w.cashBalance,totalDeposited:w.totalDeposited,totalWithdrawn:w.totalWithdrawn,profileCash:w.cashBalance,profileTotalDeposited:w.totalDeposited,profileTotalWithdrawn:w.totalWithdrawn,profileLocked:w.lockedBalance,profileBonus:w.bonusBalance};
+  const vals={cash:w.cashBalance,wins:w.winningsBalance,locked:w.lockedBalance,bonus:w.bonusBalance,topBalance:w.cashBalance,dashboardCash:w.cashBalance,walletHeroCash:w.cashBalance,totalDeposited:w.totalDeposited,totalWithdrawn:w.totalWithdrawn,profileCash:w.cashBalance,profileTotalDeposited:w.totalDeposited,profileTotalWithdrawn:w.totalWithdrawn,profileLocked:w.lockedBalance,profileBonus:w.bonusBalance};
   for(const [id,v] of Object.entries(vals))setText('#'+id,money(v));
   if($('#profileSupportText')&&PLH.state.config?.supportText)$('#profileSupportText').textContent=PLH.state.config.supportText;
   avatar($('#heroAvatar'),u);avatar($('#drawerAvatar'),u);avatar($('#profileAvatar'),u);
@@ -186,7 +186,7 @@ $('#googleCompleteForm')?.addEventListener('submit',async e=>{
 
 async function logout(){try{await PLH.api('/api/auth/logout',{method:'POST'});}catch{}location.reload();}
 $('#logout')?.addEventListener('click',logout);$('#drawerLogout')?.addEventListener('click',logout);$('#profileLogoutShortcut')?.addEventListener('click',logout);
-$('#menuBtn')?.addEventListener('click',()=>openDrawer(true));$('#backdrop')?.addEventListener('click',()=>openDrawer(false));
+$('#menuBtn')?.addEventListener('click',()=>openDrawer(true));$('#menuBtnProxy')?.addEventListener('click',()=>openDrawer(true));$('#backdrop')?.addEventListener('click',()=>openDrawer(false));
 $$('[data-page-target]').forEach(b=>b.addEventListener('click',()=>activate(b.dataset.pageTarget)));
 $$('[data-jump-create]').forEach(b=>b.addEventListener('click',()=>{activate('home');setTimeout(()=>$('#createCard')?.scrollIntoView({behavior:lowEnd?'auto':'smooth',block:'center'}),100);}));
 $('#profileForm')?.addEventListener('submit',async e=>{
