@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#d51f2a">
   <title>PLAY LUDU HUB</title>
-  <link rel="stylesheet" href="/style.css?v=unified-red-v6">
+  <link rel="stylesheet" href="/style.css?v=design-system-v8">
 </head>
 <body>
 <div id="shell">
@@ -162,12 +162,17 @@
 
             <article class="dashboard-create-card" id="createCard">
               <div class="dashboard-ludo-preview" aria-hidden="true">
-                <div class="dash-board">
-                  <i class="q red"></i><i class="lane"></i><i class="q green"></i>
-                  <i class="lane"></i><i class="center"></i><i class="lane"></i>
-                  <i class="q blue"></i><i class="lane"></i><i class="q yellow"></i>
+                <div class="mini-ludo-board">
+                  <div class="mini-home mini-red"><i></i><i></i><i></i><i></i></div>
+                  <div class="mini-home mini-green"><i></i><i></i><i></i><i></i></div>
+                  <div class="mini-home mini-blue"><i></i><i></i><i></i><i></i></div>
+                  <div class="mini-home mini-yellow"><i></i><i></i><i></i><i></i></div>
+                  <div class="mini-cross"></div>
+                  <div class="mini-center"></div>
+                  <b class="mini-token blue one">1</b><b class="mini-token blue two">2</b>
+                  <b class="mini-token green one">1</b><b class="mini-token green two">2</b>
                 </div>
-                <div class="dash-preview-copy"><span>LIVE TABLE</span><b>BLUE vs GREEN</b><small>10s turns • server dice</small></div>
+                <div class="dash-preview-copy"><span>LIVE TABLE</span><b>BLUE vs GREEN</b><small>Server dice • 10s decision window • real-time sync</small></div>
               </div>
               <form id="createMatchForm" class="dashboard-match-create">
                 <div><label>Entry fee</label><input id="entryFee" name="entryFee" type="number" readonly></div>
@@ -450,7 +455,7 @@
 
   <div id="toast" class="toast hidden"></div>
 </div>
-<script src="/landing.js?v=arena-red-v2"></script>
+<script src="/landing.js?v=design-system-v8"></script>
 <script src="/app.js?v=unified-red-v6"></script>
 <script src="/wallet.js?v=wallet-v4"></script>
 <script src="/pvp-lobby.js?v=unified-red-v6"></script>
