@@ -7,7 +7,7 @@ const cents=(v)=>Math.round(Number(v)*100);
 function rowState(m){return m.state_json?JSON.parse(m.state_json):null;}
 function saveState(matchId,state){db.prepare('UPDATE matches SET state_json=?,revision=? WHERE id=?').run(JSON.stringify(state),state.revision,matchId);}
 function getMatch(id){const m=db.prepare('SELECT * FROM matches WHERE id=?').get(id); if(!m)throw err('MATCH_NOT_FOUND'); return m;}
-function assertEligible(userId){const u=db.prepare('SELECT status,self_excluded,cool_off_until FROM users WHERE id=?').get(userId); if(!u||u.status!=='approved')throw err('ACCOUNT_NOT_APPROVED'); if(u.self_excluded)throw err('SELF_EXCLUDED'); if(u.cool_off_until&&u.cool_off_until>Date.now())throw err('COOL_OFF_ACTIVE');}
+function assertEligible(userId){const u=db.prepare('SELECT status,phone_verified,self_excluded,cool_off_until FROM users WHERE id=?').get(userId); if(!u||u.status!=='approved')throw err('ACCOUNT_NOT_APPROVED'); if(!u.phone_verified)throw err('PHONE_NOT_VERIFIED'); if(u.self_excluded)throw err('SELF_EXCLUDED'); if(u.cool_off_until&&u.cool_off_until>Date.now())throw err('COOL_OFF_ACTIVE');}
 function createMatch(userId,{entryFee,betAmount}){
   assertEligible(userId); const c=getConfig(); if(!c.pvpEnabled)throw err('PVP_DISABLED'); const ef=cents(entryFee??c.entryFee), bet=cents(betAmount);
   if(ef!==cents(c.entryFee))throw err('INVALID_ENTRY_FEE'); if(bet<cents(c.minBet)||bet>cents(c.maxBet))throw err('INVALID_BET');
