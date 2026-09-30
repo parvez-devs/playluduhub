@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#08050d">
   <title>PLAY LUDU HUB</title>
-  <link rel="stylesheet" href="/style.css?v=phone-otp-1">
+  <link rel="stylesheet" href="/style.css?v=auth-v3">
 </head>
 <body>
 <div id="shell">
@@ -35,51 +35,87 @@
 
   <main id="main">
     <section id="auth" class="auth-shell">
-      <div class="auth-grid">
-        <article class="auth-card">
-          <div class="auth-logo">◆</div>
-          <span class="eyebrow">WELCOME BACK</span>
-          <h1>Enter the Arena</h1>
-          <p>Approved players can sign in using username, phone number or email.</p>
-          <form id="loginForm">
-            <label>Username / Phone / Email</label>
-            <input name="login" required autocomplete="username" placeholder="username, phone or email">
-            <label>Password</label>
-            <input name="password" required type="password" autocomplete="current-password" placeholder="••••••••••">
-            <button class="cta full" type="submit">LOGIN / লগইন</button>
-          </form>
-        </article>
+      <div class="auth-portal">
+        <aside class="auth-showcase">
+          <div class="auth-brand-lockup"><span>◆</span><div><b>PLAY LUDU HUB</b><small>SECURE PLAYER ACCESS</small></div></div>
+          <div class="auth-showcase-copy">
+            <span class="eyebrow">PREMIUM PVP ARENA</span>
+            <h1>One account.<br><em>Verified identity.</em></h1>
+            <p>Email verification, unique phone identity and admin approval keep player accounts cleaner and harder to duplicate.</p>
+          </div>
+          <div class="auth-steps">
+            <div><i>1</i><span><b>Create account</b><small>Unique username, phone and email</small></span></div>
+            <div><i>2</i><span><b>Verify email</b><small>6-digit OTP sent to your inbox</small></span></div>
+            <div><i>3</i><span><b>Admin approval</b><small>Approved account can enter the arena</small></span></div>
+          </div>
+          <div class="auth-trust"><span>✓ One phone = one account</span><span>✓ Google sign-in supported</span><span>✓ Secure sessions</span></div>
+        </aside>
 
-        <article class="auth-card secondary-card">
-          <span class="eyebrow">NEW PLAYER</span>
-          <h2>Create Account</h2>
-          <p>Phone OTP verification is required first. After verification, the account waits for authorized admin approval.</p>
-          <form id="signupForm">
-            <div class="two">
-              <div><label>Name</label><input name="name" required maxlength="60"></div>
-              <div><label>Username</label><input name="username" required minlength="3" maxlength="24"></div>
-            </div>
-            <div class="two">
-              <div><label>Phone</label><input name="phone" required inputmode="tel" autocomplete="tel" placeholder="01XXXXXXXXX"></div>
-              <div><label>Email</label><input name="email" type="email" required autocomplete="email"></div>
-            </div>
-            <label>Password</label>
-            <input name="password" type="password" minlength="10" required autocomplete="new-password" placeholder="10+ characters">
-            <button class="ghost full" type="submit">CREATE ACCOUNT & SEND OTP</button>
+        <article class="auth-panel">
+          <div class="auth-panel-top">
+            <span class="auth-mobile-logo">◆</span>
+            <div><span class="eyebrow">PLAYER ACCESS</span><h2 id="authTitle">Welcome back</h2><p id="authSubtitle">Sign in to continue to your account.</p></div>
+          </div>
+
+          <div id="authTabs" class="auth-tabs">
+            <button type="button" class="active" data-auth-tab="login">LOGIN</button>
+            <button type="button" data-auth-tab="signup">CREATE ACCOUNT</button>
+          </div>
+
+          <button id="googleAuthBtn" class="google-auth hidden" type="button">
+            <span class="google-g">G</span><b>Continue with Google</b>
+          </button>
+          <div id="authDivider" class="auth-divider"><span>OR CONTINUE WITH DETAILS</span></div>
+
+          <div id="authLoginPane" class="auth-pane active">
+            <form id="loginForm">
+              <label>Username / Phone / Email</label>
+              <input name="login" required autocomplete="username" placeholder="username, 01XXXXXXXXX or email">
+              <label>Password</label>
+              <input name="password" required type="password" autocomplete="current-password" placeholder="••••••••••">
+              <button class="cta full auth-primary" type="submit">LOGIN</button>
+            </form>
+          </div>
+
+          <div id="authSignupPane" class="auth-pane">
+            <form id="signupForm">
+              <div class="two">
+                <div><label>Full name</label><input name="name" required maxlength="60" autocomplete="name" placeholder="Your name"></div>
+                <div><label>Username</label><input name="username" required minlength="3" maxlength="24" autocomplete="username" placeholder="3–24 letters/numbers"></div>
+              </div>
+              <div class="two">
+                <div><label>Phone</label><input name="phone" required inputmode="tel" autocomplete="tel" placeholder="01XXXXXXXXX"></div>
+                <div><label>Email</label><input name="email" type="email" required autocomplete="email" placeholder="you@example.com"></div>
+              </div>
+              <label>Password</label>
+              <input name="password" type="password" minlength="10" required autocomplete="new-password" placeholder="Minimum 10 characters">
+              <div class="auth-rule"><span>✓</span><p>A phone number can belong to only one PLAY LUDU HUB account.</p></div>
+              <button id="signupSubmit" class="cta full auth-primary" type="submit">CREATE ACCOUNT</button>
+            </form>
+
+            <form id="otpVerifyForm" class="otp-verify hidden">
+              <div class="otp-head">
+                <span class="otp-icon">✉</span>
+                <div><b>Verify your email</b><small id="otpDestination">We sent a 6-digit code to your email.</small></div>
+              </div>
+              <label>6-digit verification code</label>
+              <input id="otpCode" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="000000">
+              <button class="cta full auth-primary" type="submit">VERIFY EMAIL</button>
+              <div class="otp-actions"><span id="otpCountdown">Code sent</span><button id="resendOtp" type="button" disabled>Resend code</button></div>
+            </form>
+          </div>
+
+          <form id="googleCompleteForm" class="auth-pane google-complete hidden">
+            <div class="google-complete-head"><span class="google-g">G</span><div><b>Finish Google signup</b><small>Google verified your email. Add a unique username and phone number.</small></div></div>
+            <label>Username</label>
+            <input name="username" required minlength="3" maxlength="24" autocomplete="username" placeholder="Choose a username">
+            <label>Phone</label>
+            <input name="phone" required inputmode="tel" autocomplete="tel" placeholder="01XXXXXXXXX">
+            <div class="auth-rule"><span>✓</span><p>This phone number cannot be used on another account.</p></div>
+            <button class="cta full auth-primary" type="submit">COMPLETE ACCOUNT</button>
           </form>
-          <form id="otpVerifyForm" class="otp-verify hidden">
-            <div class="otp-head">
-              <span class="otp-icon">✓</span>
-              <div><b>Verify phone number</b><small>SMS-এ পাওয়া verification code লিখুন</small></div>
-            </div>
-            <label>OTP Code</label>
-            <input id="otpCode" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4,10}" maxlength="10" required placeholder="••••••">
-            <button class="cta full" type="submit">VERIFY OTP</button>
-            <div class="otp-actions">
-              <span id="otpCountdown">Code sent</span>
-              <button id="resendOtp" type="button" disabled>Resend OTP</button>
-            </div>
-          </form>
+
+          <div id="authStatus" class="auth-status hidden"></div>
         </article>
       </div>
     </section>
@@ -355,7 +391,7 @@
   <div id="toast" class="toast hidden"></div>
 </div>
 <script src="/landing.js?v=12-landing-1"></script>
-<script src="/app.js?v=phone-otp-1"></script>
+<script src="/app.js?v=auth-v3"></script>
 <script src="/wallet.js?v=payment-profile-v2"></script>
 <script src="/pvp-lobby.js?v=12-premium-final-1"></script>
 </body>
