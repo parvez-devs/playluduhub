@@ -71,7 +71,7 @@ async function renderLanding(){
       '<aside class="hero-game"><div class="hero-game-head"><span id="heroPreviewTitle">DEMO PREVIEW</span><b>SERVER VERIFIED</b></div><div id="heroBoard">'+demoBoard()+'</div><div class="hero-game-foot"><span>BLUE</span><b id="heroTableLabel">DEMO TABLE</b><span>GREEN</span></div></aside></section>'+
       '<section id="arenaSection" class="arena-section"><div class="section-head"><div><span>LIVE NOW</span><h2>Arena tables</h2></div><b id="arenaCount">0 active • 0 waiting</b></div><div id="publicArena" class="arena-grid"><div class="loading">Loading arena…</div></div></section>'+
       '<section class="cta-panel"><div><span>PLAYER ACCESS</span><h2>Ready for your next match?</h2><p>Sign in with an approved account or create a verified player profile.</p></div><button class="btn primary xl" data-auth="login">Enter arena →</button></section>'+
-    '</main><footer class="landing-footer">'+brand()+'<small>PLAY LUDU HUB • Secure PvP Platform</small></footer></div>');
+    '</main><footer class="landing-footer">'+brand()+'<small>18+ • Skill-based PvP • Play responsibly</small></footer></div>');
   document.querySelectorAll<HTMLElement>('[data-auth]').forEach(x=>x.onclick=()=>renderAuth((x.dataset.auth||'login') as any));
   document.querySelector('[data-arena]')?.addEventListener('click',()=>document.querySelector('#arenaSection')?.scrollIntoView({behavior:'smooth'}));
   loadPublicArena();
