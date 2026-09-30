@@ -1,7 +1,7 @@
 'use strict';
 const http=require('http'); const fs=require('fs'); const path=require('path'); const {z}=require('zod');
-const {db,getConfig}=require('./server/db'); const auth=require('./server/auth'); const wallet=require('./server/wallet'); const pvp=require('./server/pvp'); const payments=require('./server/payments'); const aml=require('./server/aml'); const telegram=require('./server/telegram'); const admin=require('./server/admin'); const websocket=require('./server/websocket'); const {audit}=require('./server/audit');
-const {readJson,json,clientIp,cookie,randomToken,safeFile}=require('./server/utils');
+const {db,getConfig}=require('./server/db'); const auth=require('./server/auth'); const googleAuth=require('./server/google-auth'); const wallet=require('./server/wallet'); const pvp=require('./server/pvp'); const payments=require('./server/payments'); const aml=require('./server/aml'); const telegram=require('./server/telegram'); const admin=require('./server/admin'); const websocket=require('./server/websocket'); const {audit}=require('./server/audit');
+const {readJson,json,clientIp,cookie,randomToken,safeFile,timingSafeEqual}=require('./server/utils');
 const PORT=Number(process.env.PORT||8080), PUBLIC=path.join(__dirname,'public'), PROD=process.env.NODE_ENV==='production';
 const depositSchema=z.object({method:z.enum(['bkash','nagad']),amount:z.coerce.number().positive().max(100000000),transactionId:z.string().trim().min(3).max(120)});
 const withdrawalSchema=z.object({method:z.enum(['bkash','nagad']),accountNumber:z.string().trim().regex(/^\+?[0-9]{8,15}$/),amount:z.coerce.number().positive().max(100000000),sourceBucket:z.enum(['winnings','cash','bonus']).default('cash')});
@@ -16,7 +16,7 @@ function needAdmin(req,mutating=false){const s=admin.verify(req); if(!s)throw st
 function idemLookup(scope,actor,key){if(!key)throw status('IDEMPOTENCY_KEY_REQUIRED',400); const r=db.prepare('SELECT * FROM idempotency_keys WHERE scope=? AND actor_id=? AND key=?').get(scope,actor,key); if(r?.response_json)return {status:r.response_status,body:JSON.parse(r.response_json)}; if(r)throw status('IDEMPOTENCY_IN_PROGRESS',409); try{db.prepare('INSERT INTO idempotency_keys(scope,actor_id,key,created_at) VALUES(?,?,?,?)').run(scope,actor,key,Date.now());}catch(e){if(String(e.code||'').includes('CONSTRAINT'))throw status('IDEMPOTENCY_IN_PROGRESS',409);throw e;} return null;}
 function idemSave(scope,actor,key,statusCode,body){db.prepare('UPDATE idempotency_keys SET response_status=?,response_json=? WHERE scope=? AND actor_id=? AND key=?').run(statusCode,JSON.stringify(body),scope,actor,key);}
 async function moneyAction(req,res,scope,actor,fn){const key=String(req.headers['idempotency-key']||'').slice(0,120), old=idemLookup(scope,actor,key); if(old)return json(res,old.status,old.body); try{const body=await fn(); idemSave(scope,actor,key,200,body); return json(res,200,body);}catch(e){db.prepare('DELETE FROM idempotency_keys WHERE scope=? AND actor_id=? AND key=? AND response_json IS NULL').run(scope,actor,key); throw e;}}
-function publicConfig(){const c=getConfig(); return {appNotice:c.appNotice,supportText:c.supportText,pvpEnabled:c.pvpEnabled,entryFee:c.entryFee,minBet:c.minBet,maxBet:c.maxBet,turnSeconds:c.turnSeconds,minDeposit:c.minDeposit,maxDeposit:c.maxDeposit,minWithdraw:c.minWithdraw,maxWithdraw:c.maxWithdraw,timeoutStrikes:c.timeoutStrikes,disconnectGraceSeconds:c.disconnectGraceSeconds};}
+function publicConfig(){const c=getConfig(); return {appNotice:c.appNotice,supportText:c.supportText,pvpEnabled:c.pvpEnabled,entryFee:c.entryFee,minBet:c.minBet,maxBet:c.maxBet,turnSeconds:c.turnSeconds,minDeposit:c.minDeposit,maxDeposit:c.maxDeposit,minWithdraw:c.minWithdraw,maxWithdraw:c.maxWithdraw,timeoutStrikes:c.timeoutStrikes,disconnectGraceSeconds:c.disconnectGraceSeconds,emailOtpRequired:process.env.EMAIL_OTP_REQUIRED==='1',googleAuthEnabled:googleAuth.enabled()};}
 function publicArena(){const rows=db.prepare("SELECT status,entry_fee,bet_amount,created_at,started_at FROM matches WHERE status IN ('active','waiting') ORDER BY CASE WHEN status='active' THEN 0 ELSE 1 END,COALESCE(started_at,created_at) DESC LIMIT 4").all();const activeCount=db.prepare("SELECT COUNT(*) n FROM matches WHERE status='active'").get().n;const waitingCount=db.prepare("SELECT COUNT(*) n FROM matches WHERE status='waiting'").get().n;return {activeCount,waitingCount,items:rows.map((m,i)=>({tableNumber:i+1,status:m.status,entryFee:m.entry_fee/100,betAmount:m.bet_amount/100,createdAt:m.created_at,startedAt:m.started_at}))};}
 const server=http.createServer(async(req,res)=>{
   const ip=clientIp(req); if(limited(`ip:${ip}`,150))return json(res,429,{error:'RATE_LIMIT'});
@@ -30,22 +30,48 @@ const server=http.createServer(async(req,res)=>{
     if(pathname==='/api/auth/signup'&&req.method==='POST'){
       if(limited(`auth:${ip}`,10)||limited(`signupotp:${ip}`,5,10*60000))throw status('RATE_LIMIT',429);
       const out=await auth.signup(await readJson(req));
-      if(out.verification){audit({actorType:'user',actorId:out.user.id,action:'signup_otp_sent',targetType:'user',targetId:out.user.id,ip});}
+      if(out.verification) audit({actorType:'user',actorId:out.user.id,action:'signup_email_otp_sent',targetType:'user',targetId:out.user.id,ip});
       else{telegram.notify('account',out.user).catch(console.error);audit({actorType:'user',actorId:out.user.id,action:'signup',targetType:'user',targetId:out.user.id,ip});}
       return json(res,201,out);
     }
-    if(pathname==='/api/auth/verify-phone'&&req.method==='POST'){
+    if(pathname==='/api/auth/verify-email'&&req.method==='POST'){
       if(limited(`otpcheck:${ip}`,12,10*60000))throw status('RATE_LIMIT',429);
-      const out=await auth.verifyPhone(await readJson(req));
+      const out=await auth.verifyEmail(await readJson(req));
       if(!out.alreadyVerified){
         telegram.notify('account',out.user).catch(console.error);
-        audit({actorType:'user',actorId:out.user.id,action:'phone_verified',targetType:'user',targetId:out.user.id,ip});
+        audit({actorType:'user',actorId:out.user.id,action:'email_verified',targetType:'user',targetId:out.user.id,ip});
       }
       return json(res,200,{user:out.user,verified:true,pendingApproval:out.user.status==='pending'});
     }
-    if(pathname==='/api/auth/resend-phone-otp'&&req.method==='POST'){
+    if(pathname==='/api/auth/resend-email-otp'&&req.method==='POST'){
       if(limited(`otpresend:${ip}`,6,10*60000))throw status('RATE_LIMIT',429);
-      return json(res,200,{verification:await auth.resendPhoneOtp(await readJson(req))});
+      return json(res,200,{verification:await auth.resendEmailOtp(await readJson(req))});
+    }
+    if(pathname==='/api/auth/google/start'&&req.method==='GET'){
+      const state=googleAuth.createState();
+      res.writeHead(302,{location:googleAuth.authorizationUrl(state),'set-cookie':cookie('plh_google_state',state,{maxAge:10*60000,secure:PROD,sameSite:'Lax'})});return res.end();
+    }
+    if(pathname==='/api/auth/google/callback'&&req.method==='GET'){
+      const state=String(url.searchParams.get('state')||''),code=String(url.searchParams.get('code')||''),cookies=parseCookie(req),expected=String(cookies.plh_google_state||'');
+      if(!state||!code||!expected||!timingSafeEqual(state,expected))throw status('GOOGLE_STATE_INVALID',400);
+      const out=await googleAuth.callback(state,code),clearState=cookie('plh_google_state','',{maxAge:0,secure:PROD,sameSite:'Lax'});
+      if(out.kind==='existing'){
+        const user=auth.publicUser(out.user);
+        if(out.becameVerified&&out.user.status==='pending'){telegram.notify('account',user).catch(console.error);audit({actorType:'user',actorId:user.id,action:'google_email_verified',targetType:'user',targetId:user.id,ip});}
+        if(out.user.status==='approved'){
+          const token=auth.createSession(out.user.id,{ip,userAgent:req.headers['user-agent']||''});
+          res.writeHead(302,{location:'/?google=success','set-cookie':[clearState,cookie('plh_session',token,{maxAge:auth.SESSION_MS,secure:PROD,sameSite:'Lax'})]});return res.end();
+        }
+        res.writeHead(302,{location:'/?auth='+encodeURIComponent(out.user.status),'set-cookie':clearState});return res.end();
+      }
+      res.writeHead(302,{location:'/?google=complete','set-cookie':[clearState,cookie('plh_google_pending',out.token,{maxAge:15*60000,secure:PROD,sameSite:'Lax'})]});return res.end();
+    }
+    if(pathname==='/api/auth/google/complete'&&req.method==='POST'){
+      if(limited(`googlecomplete:${ip}`,8,10*60000))throw status('RATE_LIMIT',429);
+      const token=parseCookie(req).plh_google_pending;if(!token)throw status('GOOGLE_SIGNUP_EXPIRED',400);
+      const row=await googleAuth.completeSignup(token,await readJson(req)),user=auth.publicUser(row);
+      telegram.notify('account',user).catch(console.error);audit({actorType:'user',actorId:user.id,action:'google_signup_complete',targetType:'user',targetId:user.id,ip});
+      return json(res,201,{user,pendingApproval:true},{'set-cookie':cookie('plh_google_pending','',{maxAge:0,secure:PROD,sameSite:'Lax'})});
     }
     if(pathname==='/api/auth/login'&&req.method==='POST'){if(limited(`auth:${ip}`,10))throw status('RATE_LIMIT',429); const out=await auth.login(await readJson(req),{ip,userAgent:req.headers['user-agent']||''}); return json(res,200,{user:out.user},{'set-cookie':cookie('plh_session',out.token,{maxAge:auth.SESSION_MS,secure:PROD})});}
     if(pathname==='/api/auth/logout'&&req.method==='POST'){const a=needUser(req); auth.logout(a.token); return json(res,200,{ok:true},{'set-cookie':cookie('plh_session','',{maxAge:0,secure:PROD})});}
