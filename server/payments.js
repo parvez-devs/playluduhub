@@ -15,8 +15,9 @@ const {uid}=require('./utils');
  *
  * No payment gateway API, webhook, API key, or provider secret is required.
  */
+function assertPhoneVerified(userId){const u=db.prepare('SELECT phone_verified FROM users WHERE id=?').get(userId);if(!u)throw err('USER_NOT_FOUND');if(!u.phone_verified)throw err('PHONE_NOT_VERIFIED');}
 function createDeposit(userId,{method,amount,transactionId}){
-  const c=getConfig(), paisa=Math.round(Number(amount)*100);
+  assertPhoneVerified(userId);const c=getConfig(), paisa=Math.round(Number(amount)*100);
   if(!['bkash','nagad'].includes(method))throw err('INVALID_METHOD');
   if(paisa<Math.round(c.minDeposit*100)||paisa>Math.round(c.maxDeposit*100))throw err('DEPOSIT_LIMIT');
   const txid=String(transactionId||'').trim();
@@ -57,7 +58,7 @@ function rejectDeposit(id,note='Rejected by admin',actor='admin'){
 }
 
 function createWithdrawal(userId,{method,accountNumber,amount,sourceBucket='cash'}){
-  const c=getConfig(), paisa=Math.round(Number(amount)*100);
+  assertPhoneVerified(userId);const c=getConfig(), paisa=Math.round(Number(amount)*100);
   if(!['bkash','nagad'].includes(method))throw err('INVALID_METHOD');
   if(sourceBucket==='bonus'&&!c.bonusWithdrawable)throw err('BONUS_WITHDRAW_DISABLED');
   if(!['winnings','cash','bonus'].includes(sourceBucket))throw err('INVALID_SOURCE');
