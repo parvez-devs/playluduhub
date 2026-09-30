@@ -27,7 +27,25 @@ const server=http.createServer(async(req,res)=>{
     if(pathname==='/api/config'&&req.method==='GET')return json(res,200,publicConfig());
     if(pathname==='/api/public/arena'&&req.method==='GET')return json(res,200,publicArena());
     if(pathname==='/api/payment-methods'&&req.method==='GET'){const kind=url.searchParams.get('kind')||'deposit'; return json(res,200,{items:db.prepare('SELECT id,kind,method,label,account_number FROM payment_methods WHERE enabled=1 AND kind=? ORDER BY created_at').all(kind)});}
-    if(pathname==='/api/auth/signup'&&req.method==='POST'){if(limited(`auth:${ip}`,10))throw status('RATE_LIMIT',429); const u=await auth.signup(await readJson(req)); telegram.notify('account',u).catch(console.error); audit({actorType:'user',actorId:u.id,action:'signup',targetType:'user',targetId:u.id,ip}); return json(res,201,{user:u});}
+    if(pathname==='/api/auth/signup'&&req.method==='POST'){
+      if(limited(`auth:${ip}`,10)||limited(`signupotp:${ip}`,5,10*60000))throw status('RATE_LIMIT',429);
+      const out=await auth.signup(await readJson(req));
+      audit({actorType:'user',actorId:out.user.id,action:'signup_otp_sent',targetType:'user',targetId:out.user.id,ip});
+      return json(res,201,out);
+    }
+    if(pathname==='/api/auth/verify-phone'&&req.method==='POST'){
+      if(limited(`otpcheck:${ip}`,12,10*60000))throw status('RATE_LIMIT',429);
+      const out=await auth.verifyPhone(await readJson(req));
+      if(!out.alreadyVerified){
+        telegram.notify('account',out.user).catch(console.error);
+        audit({actorType:'user',actorId:out.user.id,action:'phone_verified',targetType:'user',targetId:out.user.id,ip});
+      }
+      return json(res,200,{user:out.user,verified:true,pendingApproval:out.user.status==='pending'});
+    }
+    if(pathname==='/api/auth/resend-phone-otp'&&req.method==='POST'){
+      if(limited(`otpresend:${ip}`,6,10*60000))throw status('RATE_LIMIT',429);
+      return json(res,200,{verification:await auth.resendPhoneOtp(await readJson(req))});
+    }
     if(pathname==='/api/auth/login'&&req.method==='POST'){if(limited(`auth:${ip}`,10))throw status('RATE_LIMIT',429); const out=await auth.login(await readJson(req),{ip,userAgent:req.headers['user-agent']||''}); return json(res,200,{user:out.user},{'set-cookie':cookie('plh_session',out.token,{maxAge:auth.SESSION_MS,secure:PROD})});}
     if(pathname==='/api/auth/logout'&&req.method==='POST'){const a=needUser(req); auth.logout(a.token); return json(res,200,{ok:true},{'set-cookie':cookie('plh_session','',{maxAge:0,secure:PROD})});}
     if(pathname==='/api/me'&&req.method==='GET'){const a=needUser(req),w=db.prepare('SELECT * FROM wallets WHERE user_id=?').get(a.user.id); return json(res,200,{user:auth.publicUser(a.user),wallet:walletView(w)});}
