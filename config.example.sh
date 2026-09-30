@@ -19,9 +19,15 @@ export TELEGRAM_CHAT_ID=''
 # Comma-separated numeric Telegram user IDs allowed to approve/reject.
 export TELEGRAM_ADMIN_IDS=''
 
-# SQLite + backups
+# SQLite + backups (current production store until the Supabase cutover is verified)
 export DB_PATH='./data/db.sqlite'
 export BACKUP_DIR='./data/backups'
+
+# Supabase v13 migration target.
+# Keep these empty until the project is provisioned. SUPABASE_SECRET_KEY is SERVER-ONLY.
+export SUPABASE_URL=''
+export SUPABASE_PUBLISHABLE_KEY=''
+export SUPABASE_SECRET_KEY=''
 
 # Set 1 only behind a trusted reverse proxy that overwrites forwarding headers.
 export TRUST_PROXY='0'
