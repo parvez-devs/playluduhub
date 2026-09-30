@@ -324,3 +324,43 @@ html.dice-spinning .token .playable-ring{display:none!important}
   .player-avatar{width:32px;height:32px}.player-copy>small{font-size:8px}
   .dice{width:60px;height:60px}
 }
+
+
+/* Game realism v7 */
+.connection-row{display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap}
+.latency{display:inline-flex;align-items:center;min-height:20px;padding:3px 6px;border:1px solid #ddd9de;border-radius:999px;background:#fff;color:#8f8991;font-size:5.5px;font-weight:900;font-variant-numeric:tabular-nums}
+.latency.good{border-color:#ccebdc;background:#effaf4;color:#198052}.latency.warn{border-color:#eadba9;background:#fff9e9;color:#8b6918}.latency.bad{border-color:#efc9ce;background:#fff1f3;color:#b42834}
+.match-mid strong{max-width:128px;margin-left:auto;margin-right:auto;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.25}
+.player-pill::after{content:"";position:absolute;right:8px;top:8px;width:7px;height:7px;border-radius:50%;background:#d7d3d7;box-shadow:0 0 0 3px #f3f1f3}
+.player-pill.online::after{background:#27b56c;box-shadow:0 0 0 3px #27b56c18}
+.player-pill.active::before{content:"TURN";position:absolute;left:50%;bottom:-7px;z-index:5;transform:translateX(-50%);padding:2px 6px;border-radius:999px;background:var(--pc);color:#fff;font-size:4.8px;font-weight:950;letter-spacing:.7px;box-shadow:0 2px 7px color-mix(in srgb,var(--pc) 28%,transparent)}
+.board.turn-blue{box-shadow:0 0 0 4px #fff,0 0 0 6px #1596e83d,0 15px 33px rgba(67,45,48,.15)}
+.board.turn-green{box-shadow:0 0 0 4px #fff,0 0 0 6px #12a75a3d,0 15px 33px rgba(67,45,48,.15)}
+.board.my-turn::after{content:"YOUR TURN";position:absolute;left:50%;top:8px;z-index:28;transform:translateX(-50%);padding:4px 8px;border-radius:999px;background:#17191fd9;color:#fff;font-size:5px;font-weight:950;letter-spacing:.8px;pointer-events:none;opacity:.88}
+.board.roll-phase::after{content:"ROLL DICE"}.board.move-phase::after{content:"MOVE TOKEN"}
+.token.stepping svg{animation:pawnHop .118s cubic-bezier(.25,.7,.2,1)}
+@keyframes pawnHop{0%{transform:translateY(0) scale(1)}45%{transform:translateY(-14%) scale(1.06)}100%{transform:translateY(0) scale(1)}}
+.token.home-arrival svg{animation:homePop .48s cubic-bezier(.2,.8,.2,1)}
+@keyframes homePop{0%{transform:scale(1)}35%{transform:scale(1.32) rotate(-8deg)}68%{transform:scale(.94) rotate(5deg)}100%{transform:scale(1)}}
+.token.captured svg{animation:capturePop .26s ease}
+@keyframes capturePop{0%{transform:scale(1);filter:brightness(1)}45%{transform:scale(1.28) rotate(12deg);filter:brightness(1.35)}100%{transform:scale(.7);filter:brightness(.75)}}
+.dice:not(:disabled):not(.rolling){animation:diceReady 1.35s ease-in-out infinite}
+@keyframes diceReady{0%,100%{transform:translateY(0);box-shadow:0 0 0 3px color-mix(in srgb,var(--player-colour) 17%,transparent),0 8px 17px rgba(0,0,0,.13)}50%{transform:translateY(-2px);box-shadow:0 0 0 6px color-mix(in srgb,var(--player-colour) 10%,transparent),0 11px 21px rgba(0,0,0,.14)}}
+.timer-chip{position:relative;overflow:hidden;min-width:39px;padding:4px 7px 4px 9px;border:0;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--player-colour) 18%,#fff) 0 var(--turn-pct,0%),#f0eef1 var(--turn-pct,0%) 100%);transition:background .12s linear}
+.timer-chip::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--player-colour)}
+.timer-chip.danger{animation:timerDanger .55s ease-in-out infinite}
+@keyframes timerDanger{50%{transform:scale(1.06)}}
+.turn-panel{box-shadow:inset 0 0 0 1px #ffffffb8}
+.board-cell.safe::after{content:"★";font-size:clamp(6px,1.05vw,10px);color:#555;opacity:.58}
+.board-cell.start-blue::before,.board-cell.start-green::before,.board-cell.start-red::before,.board-cell.start-yellow::before{content:"";position:absolute;inset:18%;border:1px solid #ffffffd0;border-radius:50%;box-shadow:0 1px 3px #0002}
+.yard-inner{border-radius:4px}.home-center{filter:drop-shadow(0 1px 1px #0002)}
+.result-card{position:relative;overflow:hidden}
+.result-confetti{position:absolute;inset:0;pointer-events:none;opacity:0}
+.result-overlay.won .result-confetti{opacity:1}
+.result-confetti i{position:absolute;top:-12%;width:7px;height:14px;border-radius:2px;animation:confettiFall 1.8s linear infinite}
+.result-confetti i:nth-child(1){left:10%;background:#e84c5d;animation-delay:.1s}.result-confetti i:nth-child(2){left:22%;background:#1b95db;animation-delay:.45s}.result-confetti i:nth-child(3){left:34%;background:#f0ca2d;animation-delay:.75s}.result-confetti i:nth-child(4){left:47%;background:#1ca661;animation-delay:.2s}.result-confetti i:nth-child(5){left:59%;background:#e84c5d;animation-delay:.9s}.result-confetti i:nth-child(6){left:71%;background:#1b95db;animation-delay:.55s}.result-confetti i:nth-child(7){left:83%;background:#f0ca2d;animation-delay:.3s}.result-confetti i:nth-child(8){left:92%;background:#1ca661;animation-delay:1.05s}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:0}10%{opacity:1}100%{transform:translateY(360px) rotate(520deg);opacity:.8}}
+@media(max-width:600px){
+  .match-mid strong{max-width:102px;font-size:6.5px}.connection-row{gap:3px}.latency{padding:2px 4px;font-size:5px}
+  .board.my-turn::after{top:6px;padding:3px 7px;font-size:4.6px}
+}
