@@ -25,9 +25,9 @@
   const START_CLASSES=new Map([
     ['6,13','start-blue'],['1,6','start-red'],['8,1','start-green'],['13,8','start-yellow']
   ]);
-  const tokenEls=new Map(),lastProgress=new Map(),animationVersion=new Map();
-  let boardRef=null,stateRef=null,myIdRef=null,onTokenRef=null,resizeQueued=false;
-  const STEP_MS=92;
+  const tokenEls=new Map(),lastProgress=new Map(),lastPlacement=new Map(),animationVersion=new Map();
+  let boardRef=null,stateRef=null,myIdRef=null,onTokenRef=null,resizeQueued=false,cellPx=0;
+  const STEP_MS=52;
 
   function key(x,y){return x+','+y;}
   function tokenKey(seat,i){return seat+':'+i;}
@@ -95,10 +95,13 @@
     for(const arr of groups.values())arr.forEach((k,i)=>out.set(k,pat[i]||[0,0]));
     return out;
   }
-  function setPosition(el,seat,progress,i,offset=[0,0]){
+  function setPosition(el,seat,progress,i,offset=[0,0],force=false){
     if(!boardRef)return;
-    const [x,y]=coordFor(seat,progress,i),cell=boardRef.clientWidth/15;
-    const px=(x+.5+offset[0])*cell,py=(y+.5+offset[1])*cell;
+    if(!cellPx)cellPx=boardRef.clientWidth/15;
+    const [x,y]=coordFor(seat,progress,i),px=(x+.5+offset[0])*cellPx,py=(y+.5+offset[1])*cellPx;
+    const placement=px.toFixed(2)+','+py.toFixed(2),k=tokenKey(seat,i);
+    if(!force&&lastPlacement.get(k)===placement)return;
+    lastPlacement.set(k,placement);
     el.style.setProperty('--tx',px.toFixed(2)+'px');
     el.style.setProperty('--ty',py.toFixed(2)+'px');
   }
@@ -124,17 +127,19 @@
   }
   function repositionAll(){
     if(!stateRef?.players||!boardRef)return;
+    cellPx=boardRef.clientWidth/15;lastPlacement.clear();
     const offsets=stackOffsets(stateRef);
     stateRef.players.forEach((p,seat)=>p.tokens.forEach((progress,i)=>{
-      const el=tokenEls.get(tokenKey(seat,i));if(el)setPosition(el,seat,progress,i,offsets.get(tokenKey(seat,i))||[0,0]);
+      const el=tokenEls.get(tokenKey(seat,i));if(el)setPosition(el,seat,progress,i,offsets.get(tokenKey(seat,i))||[0,0],true);
     }));
   }
   function draw(board,state,myId,onToken){
     boardRef=board;stateRef=state;myIdRef=myId;onTokenRef=onToken;buildBoard(board);
+    cellPx=board.clientWidth/15;
     const layer=board.querySelector('#tokenLayer');
     if(!state?.players){
       for(const el of tokenEls.values())el.remove();
-      tokenEls.clear();lastProgress.clear();animationVersion.clear();
+      tokenEls.clear();lastProgress.clear();lastPlacement.clear();animationVersion.clear();
       return;
     }
     const currentId=state.players[state.turnSeat]?.id,activeMine=state.phase==='active'&&currentId===myId&&state.rolled!=null;
@@ -154,5 +159,10 @@
     if(resizeQueued)return;resizeQueued=true;
     requestAnimationFrame(()=>{resizeQueued=false;repositionAll();});
   },{passive:true});
-  window.GameRenderer={draw,canMove,coordFor,GENERAL,HOME,COLOURS};
+  function markPending(seat,tokenId){
+    for(const el of tokenEls.values())el.classList.remove('pending-move');
+    tokenEls.get(tokenKey(seat,tokenId))?.classList.add('pending-move');
+  }
+  function clearPending(){for(const el of tokenEls.values())el.classList.remove('pending-move');}
+  window.GameRenderer={draw,canMove,coordFor,markPending,clearPending,GENERAL,HOME,COLOURS};
 })();
