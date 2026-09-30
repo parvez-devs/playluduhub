@@ -26,7 +26,7 @@
     ['6,13','start-blue'],['1,6','start-red'],['8,1','start-green'],['13,8','start-yellow']
   ]);
   const tokenEls=new Map(),lastProgress=new Map(),lastPlacement=new Map(),animationVersion=new Map();
-  let boardRef=null,stateRef=null,myIdRef=null,onTokenRef=null,resizeQueued=false,cellPx=0;
+  let boardRef=null,stateRef=null,myIdRef=null,onTokenRef=null,resizeQueued=false,cellPx=0,viewerSeat=0;
   const STEP_MS=52;
 
   function key(x,y){return x+','+y;}
@@ -98,7 +98,9 @@
   function setPosition(el,seat,progress,i,offset=[0,0],force=false){
     if(!boardRef)return;
     if(!cellPx)cellPx=boardRef.clientWidth/15;
-    const [x,y]=coordFor(seat,progress,i),px=(x+.5+offset[0])*cellPx,py=(y+.5+offset[1])*cellPx;
+    let [x,y]=coordFor(seat,progress,i),ox=offset[0],oy=offset[1];
+    if(viewerSeat===1){x=14-x;y=14-y;ox=-ox;oy=-oy;}
+    const px=(x+.5+ox)*cellPx,py=(y+.5+oy)*cellPx;
     const placement=px.toFixed(2)+','+py.toFixed(2),k=tokenKey(seat,i);
     if(!force&&lastPlacement.get(k)===placement)return;
     lastPlacement.set(k,placement);
@@ -135,6 +137,8 @@
   }
   function draw(board,state,myId,onToken){
     boardRef=board;stateRef=state;myIdRef=myId;onTokenRef=onToken;buildBoard(board);
+    viewerSeat=state?.players?.findIndex(p=>p.id===myId)===1?1:0;
+    board.classList.toggle('viewer-green',viewerSeat===1);
     cellPx=board.clientWidth/15;
     const layer=board.querySelector('#tokenLayer');
     if(!state?.players){
