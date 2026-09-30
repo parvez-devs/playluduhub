@@ -32,9 +32,9 @@ $('#signupForm').addEventListener('submit',async e=>{
   e.preventDefault();const b=e.submitter;PLH.busy(b,true);
   try{
     const r=await PLH.api('/api/auth/signup',{method:'POST',body:formObj(e.target)});
-    otpVerificationId=r.verification?.id||'';otpResendAt=Number(r.verification?.resendAfter||Date.now()+60000);
-    sessionStorage.setItem('plh_otp_verification',otpVerificationId);sessionStorage.setItem('plh_otp_resend_at',String(otpResendAt));
-    e.target.reset();showOtp(true);PLH.toast('OTP sent to your phone');
+    e.target.reset();
+    if(r.verification?.id){otpVerificationId=r.verification.id;otpResendAt=Number(r.verification.resendAfter||Date.now()+60000);sessionStorage.setItem('plh_otp_verification',otpVerificationId);sessionStorage.setItem('plh_otp_resend_at',String(otpResendAt));showOtp(true);PLH.toast('OTP sent to your phone');}
+    else{showOtp(false);PLH.toast(`Account @${r.user.username} is pending admin approval.`);}
   }catch(x){PLH.toast(x.message,true);}finally{PLH.busy(b,false);}
 });
 $('#otpVerifyForm')?.addEventListener('submit',async e=>{
