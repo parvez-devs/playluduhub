@@ -6,7 +6,8 @@
   let ws,state=null,me=null,match=null,reconnectTimer=null,timerTick=null,rolling=false,rollPending=false,movePending=false,diceSpinTimer=null;
   let reconnectAttempt=0,renderQueued=false,lastTimerText='',resultShown=false;
   let config={turnSeconds:10,timeoutStrikes:2,disconnectGraceSeconds:15};
-  const strikes=new Map();
+  const strikes=new Map(),playerNames=new Map();
+  let audioCtx=null,soundEnabled=localStorage.getItem('plh_sound')!=='0';
   const PIPS={
     1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]
   };
@@ -23,9 +24,29 @@
   function hideBoot(){const b=$('#boot');if(!b)return;b.classList.add('hide');setTimeout(()=>b.remove(),180);}
   function setConnection(text,kind=''){const e=$('#connection');if(e){e.textContent=text;e.className='connection '+kind;}}
   function short(id){return String(id||'').slice(0,10)}
-  function name(id){if(!id)return'—';return id===me?.id?'YOU':short(id)}
-  function log(text){const el=$('#log');if(!el)return;const d=document.createElement('div');d.textContent=text;el.appendChild(d);while(el.children.length>50)el.firstChild.remove();el.scrollTop=el.scrollHeight;}
+  function name(id){if(!id)return'—';return id===me?.id?(me?.username?('@'+me.username):'YOU'):(playerNames.get(id)||short(id))}
+  function log(text){const el=$('#log');if(!el)return;const d=document.createElement('div');d.textContent=text;el.appendChild(d);while(el.children.length>40)el.firstChild.remove();el.scrollTop=el.scrollHeight;}
   function send(obj){if(ws?.readyState!==WebSocket.OPEN)return false;ws.send(JSON.stringify(obj));return true;}
+  function ensureAudio(){
+    if(!soundEnabled)return null;
+    try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx;}catch{return null;}
+  }
+  function tone(freq=440,duration=.045,gain=.035,delay=0,type='sine'){
+    const a=ensureAudio();if(!a)return;const at=a.currentTime+delay,o=a.createOscillator(),g=a.createGain();
+    o.type=type;o.frequency.setValueAtTime(freq,at);g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(gain,at+.006);g.gain.exponentialRampToValueAtTime(.0001,at+duration);
+    o.connect(g);g.connect(a.destination);o.start(at);o.stop(at+duration+.015);
+  }
+  function sound(kind){
+    if(!soundEnabled)return;
+    if(kind==='tap')tone(240,.035,.025,0,'square');
+    else if(kind==='dice'){tone(330,.04,.03);tone(520,.055,.032,.045);}
+    else if(kind==='move')tone(420,.035,.022);
+    else if(kind==='capture'){tone(520,.045,.035);tone(300,.07,.038,.05,'square');}
+    else if(kind==='home'){tone(523,.05,.035);tone(659,.05,.035,.055);tone(784,.08,.04,.11);}
+    else if(kind==='turn'){tone(640,.045,.025);}
+    else if(kind==='win'){tone(523,.06,.04);tone(659,.06,.04,.07);tone(784,.12,.045,.14);}
+    else if(kind==='lose'){tone(330,.08,.028);tone(247,.12,.03,.08);}
+  }
   function queueRender(){if(renderQueued)return;renderQueued=true;requestAnimationFrame(()=>{renderQueued=false;render();});}
 
   function buildDice(){
@@ -54,7 +75,7 @@
     setTimeout(()=>stopDiceSpin(finalValue),lowEnd?90:120);
   }
   function syncPlayerStats(){
-    for(const p of match?.playerStats||[])strikes.set(p.userId,Number(p.timeoutStrikes||0));
+    for(const p of match?.playerStats||[]){strikes.set(p.userId,Number(p.timeoutStrikes||0));if(p.username)playerNames.set(p.userId,'@'+p.username);}
   }
 
   function connect(){
@@ -79,9 +100,9 @@
       if(state?.revision!==oldRevision){rollPending=false;movePending=false;GameRenderer.clearPending?.();}
       queueRender();return;
     }
-    if(m.type==='dice'){animateDice(m.value);log('🎲 '+name(m.by)+' rolled '+m.value);return;}
-    if(m.type==='move'){log('Token '+(Number(m.tokenId)+1)+' moved by '+name(m.by));return;}
-    if(m.type==='turn'){if(state)state.deadline=m.deadline;return;}
+    if(m.type==='dice'){animateDice(m.value);sound('dice');log('🎲 '+name(m.by)+' rolled '+m.value);return;}
+    if(m.type==='move'){if(m.reachedHome)sound('home');else if(m.captured?.length)sound('capture');else sound('move');log('Token '+(Number(m.tokenId)+1)+' moved by '+name(m.by)+(m.captured?.length?' • capture!':m.reachedHome?' • home!':''));return;}
+    if(m.type==='turn'){if(state)state.deadline=m.deadline;if(m.playerId===me?.id)sound('turn');return;}
     if(m.type==='chat'){log(name(m.by)+': '+m.text);return;}
     if(m.type==='end'){rollPending=false;movePending=false;stopDiceSpin(null);GameRenderer.clearPending?.();log('🏁 Winner: '+name(m.winnerId)+' ('+m.reason+')');showResult(m.winnerId,m.reason);return;}
     if(m.type==='error'){
@@ -99,7 +120,7 @@
     state.players.forEach((p,i)=>{
       const el=$('#p'+i);if(!el)return;
       const nameEl=el.querySelector('[data-name]'),strikeEl=el.querySelector('[data-strikes]');
-      if(nameEl)nameEl.textContent=p.id===me.id?'YOU':short(p.id);
+      if(nameEl)nameEl.textContent=p.id===me.id?(me?.username?('@'+me.username):'YOU'):(playerNames.get(p.id)||short(p.id));
       const s=strikes.get(p.id)||0;if(strikeEl)strikeEl.textContent=s?'⚠ '+s:'';
       el.classList.toggle('active',p.id===current&&state.phase==='active');
     });
@@ -133,12 +154,12 @@
 
   function moveToken(tokenId){
     if(movePending||rollPending||!state||state.players[state.turnSeat]?.id!==me.id||state.rolled==null)return;
-    movePending=true;GameRenderer.markPending?.(Number(state.turnSeat||0),tokenId);
+    movePending=true;sound('tap');GameRenderer.markPending?.(Number(state.turnSeat||0),tokenId);
     if(!send({type:'move_token',matchId,tokenId,expectedState:state.revision})){movePending=false;GameRenderer.clearPending?.();}
   }
   function showResult(winnerId,reason){
     if(!winnerId||resultShown)return;resultShown=true;
-    $('#resultTitle').textContent=winnerId===me?.id?'YOU WON!':'MATCH FINISHED';
+    $('#resultTitle').textContent=winnerId===me?.id?'YOU WON!':'MATCH FINISHED';sound(winnerId===me?.id?'win':'lose');
     $('#resultText').textContent=(winnerId===me?.id?'The server settled the pot into your Main Balance. ':'Winner: '+name(winnerId)+'. ')+(reason?'Reason: '+reason+'.':'');
     $('#resultOverlay').classList.remove('hidden');$('#roll').disabled=true;
   }
@@ -152,9 +173,11 @@
 
   $('#roll').onclick=()=>{
     if(rollPending||rolling||!state||$('#roll').disabled)return;
-    rollPending=true;$('#roll').disabled=true;startDiceSpin();
+    rollPending=true;$('#roll').disabled=true;sound('tap');startDiceSpin();
     if(!send({type:'roll_dice',matchId,expectedState:state.revision})){rollPending=false;stopDiceSpin(null);queueRender();}
   };
+  $('#soundToggle').onclick=()=>{soundEnabled=!soundEnabled;localStorage.setItem('plh_sound',soundEnabled?'1':'0');$('#soundToggle').textContent=soundEnabled?'🔊 Sound':'🔇 Sound';if(soundEnabled){ensureAudio();sound('turn');}};
+  document.addEventListener('pointerdown',()=>ensureAudio(),{once:true,passive:true});
   $('#exitBtn').onclick=()=>{if(match?.status==='active'&&!confirm('Leave the live match screen? Disconnect rules may apply.'))return;location.href='/';};
   $('#resultBack').onclick=()=>location.href='/';
   $('#cancelWaiting').onclick=async()=>{
