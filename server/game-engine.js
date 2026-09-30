@@ -5,7 +5,7 @@ const START_OFFSETS=[0,26]; // 2-player Ludo uses opposite colors/seats
 const SAFE_CELLS=new Set([0,8,13,21,26,34,39,47]);
 function newGame(playerIds,config={}){
   if(!Array.isArray(playerIds)||playerIds.length!==2) throw new Error('TWO_PLAYERS_REQUIRED');
-  return {version:1,revision:0,players:playerIds.map((id,seat)=>({id,seat,tokens:[-1,-1,-1,-1]})),turnSeat:0,rolled:null,consecutiveSixes:0,winnerId:null,phase:'active',lastMove:null,deadline:null,config:{extraTurnOnSix:config.extraTurnOnSix!==false,extraTurnOnCapture:config.extraTurnOnCapture!==false}};
+  return {version:1,revision:0,players:playerIds.map((id,seat)=>({id,seat,tokens:[-1,-1,-1,-1]})),turnSeat:0,rolled:null,consecutiveSixes:0,winnerId:null,phase:'active',lastMove:null,deadline:null,config:{extraTurnOnSix:config.extraTurnOnSix!==false,extraTurnOnCapture:true,extraTurnOnFinish:true}};
 }
 function clone(s){return JSON.parse(JSON.stringify(s));}
 function current(s){return s.players[s.turnSeat];}
@@ -28,10 +28,11 @@ function moveToken(state,playerId,tokenId){
   const gc=globalCell(p.seat,to); if(gc!=null&&!SAFE_CELLS.has(gc)){
     for(const op of s.players){ if(op.id===p.id)continue; op.tokens.forEach((prog,i)=>{if(globalCell(op.seat,prog)===gc){op.tokens[i]=-1; captured.push({playerId:op.id,tokenId:i});}}); }
   }
-  const finished=p.tokens.every(x=>x===FINISH); const gotSix=dice===6; s.rolled=null; s.revision++; s.lastMove={type:'move',by:playerId,tokenId,from,to,dice,captured,path};
-  if(finished){s.phase='finished'; s.winnerId=playerId; s.deadline=null; return {state:s,path,captured,finished:true};}
-  const extra=(gotSix&&s.config.extraTurnOnSix)||(captured.length>0&&s.config.extraTurnOnCapture); if(!extra)advanceTurn(s); else s.deadline=null;
-  return {state:s,path,captured,finished:false};
+  const finished=p.tokens.every(x=>x===FINISH), reachedHome=to===FINISH, gotSix=dice===6; s.rolled=null; s.revision++; s.lastMove={type:'move',by:playerId,tokenId,from,to,dice,captured,path,reachedHome};
+  if(finished){s.phase='finished'; s.winnerId=playerId; s.deadline=null; return {state:s,path,captured,reachedHome,extraTurn:false,finished:true};}
+  // PLAY LUDU HUB rules: a six, a capture, or bringing a token exactly home earns another roll.
+  const extra=(gotSix&&s.config.extraTurnOnSix)||(captured.length>0)||reachedHome; if(!extra)advanceTurn(s); else s.deadline=null;
+  return {state:s,path,captured,reachedHome,extraTurn:extra,finished:false};
 }
 function makePath(seat,from,to){const out=[]; const start=from===-1?0:from+1; for(let p=start;p<=to;p++){out.push({progress:p,globalCell:globalCell(seat,p),homeLane:p>=LOOP&&p<FINISH,finished:p===FINISH});} return out;}
 function code(c){return Object.assign(new Error(c),{code:c});}
