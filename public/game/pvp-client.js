@@ -3,7 +3,7 @@
   const qs=new URLSearchParams(location.search),matchId=qs.get('matchId');
   if(!matchId){location.href='/';return;}
   const $=s=>document.querySelector(s);
-  let ws,state=null,me=null,match=null,reconnectTimer=null,timerTick=null,rolling=false,rollPending=false,movePending=false;
+  let ws,state=null,me=null,match=null,reconnectTimer=null,timerTick=null,rolling=false,rollPending=false,movePending=false,diceSpinTimer=null;
   let reconnectAttempt=0,renderQueued=false,lastTimerText='',resultShown=false;
   let config={turnSeconds:10,timeoutStrikes:2,disconnectGraceSeconds:15};
   const strikes=new Map();
@@ -38,16 +38,20 @@
     const on=PIPS[n]||[],kids=$('#diceFace')?.children;if(!kids)return;
     for(let i=0;i<kids.length;i++)kids[i].classList.toggle('on',on.includes(i));
   }
+  function startDiceSpin(){
+    if(rolling)return;
+    rolling=true;$('#roll')?.classList.add('rolling');
+    clearInterval(diceSpinTimer);
+    diceSpinTimer=setInterval(()=>showDice(1+Math.floor(Math.random()*6)),lowEnd?82:68);
+  }
+  function stopDiceSpin(finalValue){
+    clearInterval(diceSpinTimer);diceSpinTimer=null;
+    if(finalValue!=null)showDice(finalValue);
+    $('#roll')?.classList.remove('rolling');rolling=false;rollPending=false;queueRender();
+  }
   function animateDice(finalValue){
-    rolling=true;rollPending=false;$('#roll')?.classList.add('rolling');
-    let count=0;
-    const frames=lowEnd?5:7,delay=lowEnd?46:42;
-    const tick=()=>{
-      showDice(1+Math.floor(Math.random()*6));
-      if(++count<frames)return setTimeout(tick,delay);
-      showDice(finalValue);$('#roll')?.classList.remove('rolling');rolling=false;queueRender();
-    };
-    tick();
+    if(!rolling)startDiceSpin();
+    setTimeout(()=>stopDiceSpin(finalValue),lowEnd?90:120);
   }
   function syncPlayerStats(){
     for(const p of match?.playerStats||[])strikes.set(p.userId,Number(p.timeoutStrikes||0));
@@ -72,7 +76,7 @@
     if(m.type==='state'){
       const oldRevision=state?.revision;
       state=m.state;match=m.match||match;syncPlayerStats();
-      if(state?.revision!==oldRevision){rollPending=false;movePending=false;}
+      if(state?.revision!==oldRevision){rollPending=false;movePending=false;GameRenderer.clearPending?.();}
       queueRender();return;
     }
     if(m.type==='dice'){animateDice(m.value);log('🎲 '+name(m.by)+' rolled '+m.value);return;}
@@ -81,7 +85,7 @@
     if(m.type==='chat'){log(name(m.by)+': '+m.text);return;}
     if(m.type==='end'){rollPending=false;movePending=false;log('🏁 Winner: '+name(m.winnerId)+' ('+m.reason+')');showResult(m.winnerId,m.reason);return;}
     if(m.type==='error'){
-      rollPending=false;movePending=false;
+      rollPending=false;movePending=false;stopDiceSpin(null);GameRenderer.clearPending?.();
       if(m.code==='TURN_TIMEOUT'&&m.playerId){strikes.set(m.playerId,Number(m.strikes||0));log('⚠ '+name(m.playerId)+' timeout strike '+m.strikes);}
       else log('⚠ '+m.code);
       if(m.code==='STALE_STATE')send({type:'join_match',matchId});
@@ -116,6 +120,7 @@
     renderPlayers();
     const current=state.players[state.turnSeat]?.id,seat=Number(state.turnSeat||0),mine=current===me.id,finished=state.phase==='finished';
     const station=$('#diceStation');station?.classList.toggle('blue',seat===0);station?.classList.toggle('green',seat===1);
+    const turnColour=$('#turnColour');if(turnColour)turnColour.textContent=finished?'MATCH END':(seat===0?'BLUE TURN':'GREEN TURN');
     $('#turnPlayer').textContent=finished?'FINISHED':(mine?'YOU':short(current));
     $('#status').textContent=finished?'Match complete':mine?(state.rolled==null?'Your turn — roll dice':'Choose a playable token'):name(current)+"'s turn";
     $('#strikeText').textContent='Timeout '+(strikes.get(current)||0)+' / '+Number(config.timeoutStrikes||2);
@@ -127,8 +132,8 @@
 
   function moveToken(tokenId){
     if(movePending||rollPending||!state||state.players[state.turnSeat]?.id!==me.id||state.rolled==null)return;
-    movePending=true;
-    if(!send({type:'move_token',matchId,tokenId,expectedState:state.revision}))movePending=false;
+    movePending=true;GameRenderer.markPending?.(Number(state.turnSeat||0),tokenId);
+    if(!send({type:'move_token',matchId,tokenId,expectedState:state.revision})){movePending=false;GameRenderer.clearPending?.();}
   }
   function showResult(winnerId,reason){
     if(!winnerId||resultShown)return;resultShown=true;
@@ -146,8 +151,8 @@
 
   $('#roll').onclick=()=>{
     if(rollPending||rolling||!state||$('#roll').disabled)return;
-    rollPending=true;$('#roll').disabled=true;
-    if(!send({type:'roll_dice',matchId,expectedState:state.revision})){rollPending=false;queueRender();}
+    rollPending=true;$('#roll').disabled=true;startDiceSpin();
+    if(!send({type:'roll_dice',matchId,expectedState:state.revision})){rollPending=false;stopDiceSpin(null);queueRender();}
   };
   $('#exitBtn').onclick=()=>{if(match?.status==='active'&&!confirm('Leave the live match screen? Disconnect rules may apply.'))return;location.href='/';};
   $('#resultBack').onclick=()=>location.href='/';
