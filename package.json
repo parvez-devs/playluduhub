@@ -11,7 +11,7 @@
     "start": "node server.js",
     "migrate": "node server/scripts/migrate.js",
     "backup": "node server/scripts/backup.js",
-    "check": "node server/scripts/check.js && node server/scripts/game-selftest.js && npm run build:web",
+    "check": "node server/scripts/check.js && node server/scripts/game-selftest.js && node server/scripts/game-view-selftest.js && npm run build:web",
     "gamecheck": "node server/scripts/game-selftest.js",
     "build:web": "node tools/build-web.js",
     "prestart": "npm run build:web"
