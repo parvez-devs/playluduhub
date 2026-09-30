@@ -30,7 +30,8 @@ const server=http.createServer(async(req,res)=>{
     if(pathname==='/api/auth/signup'&&req.method==='POST'){
       if(limited(`auth:${ip}`,10)||limited(`signupotp:${ip}`,5,10*60000))throw status('RATE_LIMIT',429);
       const out=await auth.signup(await readJson(req));
-      audit({actorType:'user',actorId:out.user.id,action:'signup_otp_sent',targetType:'user',targetId:out.user.id,ip});
+      if(out.verification){audit({actorType:'user',actorId:out.user.id,action:'signup_otp_sent',targetType:'user',targetId:out.user.id,ip});}
+      else{telegram.notify('account',out.user).catch(console.error);audit({actorType:'user',actorId:out.user.id,action:'signup',targetType:'user',targetId:out.user.id,ip});}
       return json(res,201,out);
     }
     if(pathname==='/api/auth/verify-phone'&&req.method==='POST'){
