@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS users(
  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','banned')),
  avatar TEXT, display_name TEXT,
  self_excluded INTEGER NOT NULL DEFAULT 0 CHECK(self_excluded IN(0,1)), cool_off_until INTEGER,
- daily_deposit_limit INTEGER, phone_verified INTEGER NOT NULL DEFAULT 0 CHECK(phone_verified IN(0,1)), created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+ daily_deposit_limit INTEGER, phone_verified INTEGER NOT NULL DEFAULT 1 CHECK(phone_verified IN(0,1)), email_verified INTEGER NOT NULL DEFAULT 0 CHECK(email_verified IN(0,1)), google_sub TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS wallets(
  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -64,26 +64,35 @@ CREATE TABLE IF NOT EXISTS audit_log(id TEXT PRIMARY KEY,actor_type TEXT NOT NUL
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC);
 CREATE TABLE IF NOT EXISTS app_config(key TEXT PRIMARY KEY,value TEXT NOT NULL,updated_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS idempotency_keys(scope TEXT NOT NULL,actor_id TEXT NOT NULL,key TEXT NOT NULL,response_status INTEGER,response_json TEXT,created_at INTEGER NOT NULL,PRIMARY KEY(scope,actor_id,key));
-CREATE TABLE IF NOT EXISTS phone_verifications(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,phone TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN('pending','verified','expired')),expires_at INTEGER NOT NULL,send_count INTEGER NOT NULL DEFAULT 1,attempt_count INTEGER NOT NULL DEFAULT 0,last_sent_at INTEGER NOT NULL,created_at INTEGER NOT NULL,verified_at INTEGER);
-CREATE INDEX IF NOT EXISTS idx_phone_verifications_user ON phone_verifications(user_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS email_verifications(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,email TEXT NOT NULL,code_hash TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN('pending','verified','expired')),expires_at INTEGER NOT NULL,send_count INTEGER NOT NULL DEFAULT 1,attempt_count INTEGER NOT NULL DEFAULT 0,last_sent_at INTEGER NOT NULL,created_at INTEGER NOT NULL,verified_at INTEGER);
+CREATE INDEX IF NOT EXISTS idx_email_verifications_user ON email_verifications(user_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS google_oauth_states(state_hash TEXT PRIMARY KEY,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS google_signup_sessions(token_hash TEXT PRIMARY KEY,google_sub TEXT NOT NULL UNIQUE,email TEXT NOT NULL,name TEXT NOT NULL,avatar TEXT,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL;
 CREATE TABLE IF NOT EXISTS disputes(id TEXT PRIMARY KEY,match_id TEXT NOT NULL REFERENCES matches(id),opened_by TEXT REFERENCES users(id),reason TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'open' CHECK(status IN('open','resolved','rejected')),resolution TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
 `;
 
 function migrate(){
   const t=Date.now();
-  const before=db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='users'").get();
   db.exec(schema);
   const cols=db.prepare('PRAGMA table_info(users)').all().map(x=>x.name);
   if(!cols.includes('phone_verified')){
-    db.exec("ALTER TABLE users ADD COLUMN phone_verified INTEGER NOT NULL DEFAULT 0 CHECK(phone_verified IN(0,1))");
-    // Existing accounts predate OTP rollout; preserve their access. New signups are explicitly unverified.
-    db.prepare('UPDATE users SET phone_verified=1').run();
-  }else if(!before){
-    // Fresh database: no backfill is needed.
+    db.exec("ALTER TABLE users ADD COLUMN phone_verified INTEGER NOT NULL DEFAULT 1 CHECK(phone_verified IN(0,1))");
   }
-  db.exec("CREATE TABLE IF NOT EXISTS phone_verifications(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,phone TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN('pending','verified','expired')),expires_at INTEGER NOT NULL,send_count INTEGER NOT NULL DEFAULT 1,attempt_count INTEGER NOT NULL DEFAULT 0,last_sent_at INTEGER NOT NULL,created_at INTEGER NOT NULL,verified_at INTEGER); CREATE INDEX IF NOT EXISTS idx_phone_verifications_user ON phone_verifications(user_id,created_at DESC);");
+  if(!cols.includes('email_verified')){
+    db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0 CHECK(email_verified IN(0,1))");
+    // Existing accounts predate email OTP. Preserve their current access.
+    db.prepare('UPDATE users SET email_verified=1').run();
+  }
+  if(!cols.includes('google_sub')){
+    db.exec("ALTER TABLE users ADD COLUMN google_sub TEXT");
+  }
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL;");
+  db.exec("CREATE TABLE IF NOT EXISTS email_verifications(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,email TEXT NOT NULL,code_hash TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN('pending','verified','expired')),expires_at INTEGER NOT NULL,send_count INTEGER NOT NULL DEFAULT 1,attempt_count INTEGER NOT NULL DEFAULT 0,last_sent_at INTEGER NOT NULL,created_at INTEGER NOT NULL,verified_at INTEGER); CREATE INDEX IF NOT EXISTS idx_email_verifications_user ON email_verifications(user_id,created_at DESC);");
+  db.exec("CREATE TABLE IF NOT EXISTS google_oauth_states(state_hash TEXT PRIMARY KEY,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS google_signup_sessions(token_hash TEXT PRIMARY KEY,google_sub TEXT NOT NULL UNIQUE,email TEXT NOT NULL,name TEXT NOT NULL,avatar TEXT,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL);");
   db.prepare("INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(1,?)").run(t);
   db.prepare("INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(2,?)").run(t);
+  db.prepare("INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(3,?)").run(t);
   db.prepare("INSERT OR IGNORE INTO admin_accounts(id,revenue_balance,updated_at) VALUES('main',0,?)").run(t);
   const defaults={welcomeBonus:0,bonusWithdrawable:false,pvpEnabled:true,entryFee:5,minBet:10,maxBet:5000,turnSeconds:10,timeoutStrikes:2,extraTurnOnSix:true,extraTurnOnCapture:true,extraTurnOnFinish:true,minDeposit:50,maxDeposit:50000,minWithdraw:100,maxWithdraw:50000,withdrawalFeePercent:0,dailyWithdrawLimit:100000,amlThreshold:50000,appNotice:'',supportText:'',withdrawFromCash:true,dailyDepositLimit:100000,disconnectLoss:true,disconnectGraceSeconds:15,waitingMatchTtlMinutes:60};
   const stmt=db.prepare('INSERT OR IGNORE INTO app_config(key,value,updated_at) VALUES(?,?,?)');
