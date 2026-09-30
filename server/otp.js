@@ -24,9 +24,10 @@ function phoneVariants(e164){
   if(/^\+8801\d{9}$/.test(e164))out.add(e164.slice(3));
   return [...out];
 }
+function resendMailEnabled(){return !!(process.env.RESEND_API_KEY&&process.env.RESEND_FROM);}
 function httpsMailEnabled(){return !!(process.env.EMAIL_HTTPS_ENDPOINT&&process.env.EMAIL_HTTPS_SECRET);}
 function smtpMailEnabled(){return !!(process.env.EMAIL_SMTP_USER&&process.env.EMAIL_SMTP_PASS);}
-function mailEnabled(){return httpsMailEnabled()||smtpMailEnabled();}
+function mailEnabled(){return resendMailEnabled()||httpsMailEnabled()||smtpMailEnabled();}
 function mailer(){
   if(!mailEnabled())throw err('EMAIL_OTP_NOT_CONFIGURED',503);
   if(transporter)return transporter;
@@ -51,6 +52,26 @@ function messageFor(code){
     html:'<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:28px;background:#101018;color:#fff;border-radius:18px"><div style="font-size:12px;letter-spacing:2px;color:#b8a0ff">PLAY LUDU HUB</div><h2 style="margin:8px 0 4px">Verify your email</h2><p style="color:#b8b3c0">Use this one-time code to finish creating your account.</p><div style="font-size:34px;font-weight:800;letter-spacing:8px;padding:18px 0;color:#fff">'+code+'</div><p style="color:#8f8997;font-size:12px">This code expires in 10 minutes. Do not share it with anyone.</p></div>'
   };
 }
+async function sendResend(email,code){
+  const apiKey=String(process.env.RESEND_API_KEY||''),from=String(process.env.RESEND_FROM||'').trim();
+  if(!apiKey||!from)throw err('EMAIL_OTP_NOT_CONFIGURED',503);
+  const msg=messageFor(code);
+  let r,data;
+  try{
+    r=await fetch('https://api.resend.com/emails',{
+      method:'POST',
+      headers:{authorization:'Bearer '+apiKey,'content-type':'application/json','idempotency-key':'otp-'+crypto.randomUUID()},
+      body:JSON.stringify({from,to:[email],subject:msg.subject,text:msg.text,html:msg.html}),
+      signal:AbortSignal.timeout(12000)
+    });
+    data=await r.json().catch(()=>({}));
+  }catch(e){console.error('resend otp transport',e?.message||e);throw err('EMAIL_OTP_SEND_FAILED',503);}
+  if(!r.ok||!data?.id){
+    console.error('resend otp error',r.status,data?.message||data?.name||'unknown');
+    throw err('EMAIL_OTP_SEND_FAILED',503);
+  }
+  return data.id;
+}
 async function sendHttps(email,code){
   const endpoint=String(process.env.EMAIL_HTTPS_ENDPOINT||'').trim(),secret=String(process.env.EMAIL_HTTPS_SECRET||'');
   if(!endpoint||!secret)throw err('EMAIL_OTP_NOT_CONFIGURED',503);
@@ -73,6 +94,7 @@ async function sendCode(email,code){
     return;
   }
   try{
+    if(resendMailEnabled())return await sendResend(email,code);
     if(httpsMailEnabled())return await sendHttps(email,code);
     if(!smtpMailEnabled())throw err('EMAIL_OTP_NOT_CONFIGURED',503);
     const msg=messageFor(code);
