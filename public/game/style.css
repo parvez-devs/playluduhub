@@ -73,7 +73,7 @@ button:disabled{cursor:not-allowed}
   transform:translate3d(var(--tx,0px),var(--ty,0px),0) translate(-50%,-78%) scale(var(--scale));
   transition:transform .09s linear,opacity .09s ease
 }
-.token:disabled{pointer-events:none}.token svg{width:100%;height:100%;display:block}.token.captured{opacity:.28;--scale:.74}
+.token:disabled{pointer-events:none}.token svg{width:100%;height:100%;display:block}.token.captured{opacity:.28;--scale:.74}.token.pending-move{--scale:.90;opacity:.78}
 .token-number{position:absolute;left:50%;top:23%;transform:translate(-50%,-50%);font-size:clamp(5px,1.15vw,9px);font-weight:950;color:#fff;text-shadow:0 1px 2px #000;pointer-events:none}
 .playable-ring{display:none;position:absolute;inset:-18%;pointer-events:none;z-index:20;animation:ringSpin .95s linear infinite}
 .token.playable .playable-ring{display:block}.playable-ring i{position:absolute;width:10%;aspect-ratio:1;border:1px solid #fff;border-radius:50%;background:var(--token-colour)}
@@ -87,11 +87,14 @@ button:disabled{cursor:not-allowed}
 .waiting-spinner{width:20px;height:20px;border:2px solid #ffffff2b;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+.control-rail{width:var(--board-side);display:flex;align-items:flex-start;margin-top:10px;min-height:111px}
 .dice-container{
-  --player-colour:var(--blue);z-index:20;margin-top:11px;display:flex;align-items:center;flex-direction:column;gap:7px;padding:9px 11px;
-  border:1px solid #2e384d;border-radius:15px;background:#0d121c;box-shadow:0 10px 24px rgba(0,0,0,.28)
+  --player-colour:var(--blue);z-index:20;display:flex;align-items:center;flex-direction:column;gap:6px;padding:8px 10px;
+  border:1px solid #2e384d;border-radius:15px;background:#0d121c;box-shadow:0 8px 18px rgba(0,0,0,.22);
+  transition:margin .16s ease,border-color .16s ease;contain:layout paint style
 }
-.dice-container.green{--player-colour:var(--green)}.dice-container.blue{--player-colour:var(--blue)}
+.dice-container.green{--player-colour:var(--green);margin-left:auto;margin-right:0}.dice-container.blue{--player-colour:var(--blue);margin-left:0;margin-right:auto}
+.turn-colour{min-width:82px;text-align:center;color:var(--player-colour);font-size:7px;font-weight:950;letter-spacing:1.15px}
 .dice{
   width:65px;height:65px;display:grid;place-items:center;padding:8px;border:2px solid var(--player-colour);border-radius:12px;background:linear-gradient(145deg,#fff,#e3e6ec);
   box-shadow:0 7px 16px rgba(0,0,0,.35),inset 0 1px #fff
@@ -129,7 +132,7 @@ button:disabled{cursor:not-allowed}
 @keyframes diceFloat{to{transform:translateY(-7px) rotate(5deg)}}@keyframes loading{from{transform:translateX(-120%)}to{transform:translateX(260%)}}
 
 html.lite .game::after{display:none}html.lite .board{box-shadow:0 0 0 2px #202633,0 12px 22px rgba(0,0,0,.28)}
-html.lite .dice-container,html.lite .player-pill,html.lite .events{background:#0c1119}.lite .token{transition-duration:.07s}.lite .playable-ring{animation-duration:1.2s}
+html.lite .dice-container,html.lite .player-pill,html.lite .events{background:#0c1119}.lite .token{transition-duration:.045s}.lite .playable-ring{animation:none}
 
 @media(max-width:600px){
   :root{--board-side:min(95vw,64dvh,560px)}
@@ -142,3 +145,8 @@ html.lite .dice-container,html.lite .player-pill,html.lite .events{background:#0
   .dice{width:58px;height:58px}.dice-face span{width:8px;height:8px}.turn-panel{min-width:136px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
+
+@media(max-width:600px){
+  .control-rail{min-height:102px}
+  .dice-container{padding:7px 9px}
+}
