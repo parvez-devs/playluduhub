@@ -17,7 +17,26 @@ function idemLookup(scope,actor,key){if(!key)throw status('IDEMPOTENCY_KEY_REQUI
 function idemSave(scope,actor,key,statusCode,body){db.prepare('UPDATE idempotency_keys SET response_status=?,response_json=? WHERE scope=? AND actor_id=? AND key=?').run(statusCode,JSON.stringify(body),scope,actor,key);}
 async function moneyAction(req,res,scope,actor,fn){const key=String(req.headers['idempotency-key']||'').slice(0,120), old=idemLookup(scope,actor,key); if(old)return json(res,old.status,old.body); try{const body=await fn(); idemSave(scope,actor,key,200,body); return json(res,200,body);}catch(e){db.prepare('DELETE FROM idempotency_keys WHERE scope=? AND actor_id=? AND key=? AND response_json IS NULL').run(scope,actor,key); throw e;}}
 function publicConfig(){const c=getConfig(); return {appNotice:c.appNotice,supportText:c.supportText,pvpEnabled:c.pvpEnabled,entryFee:c.entryFee,minBet:c.minBet,maxBet:c.maxBet,turnSeconds:c.turnSeconds,minDeposit:c.minDeposit,maxDeposit:c.maxDeposit,minWithdraw:c.minWithdraw,maxWithdraw:c.maxWithdraw,timeoutStrikes:c.timeoutStrikes,disconnectGraceSeconds:c.disconnectGraceSeconds,emailOtpRequired:process.env.EMAIL_OTP_REQUIRED==='1',googleAuthEnabled:googleAuth.enabled()};}
-function publicArena(){const rows=db.prepare("SELECT status,entry_fee,bet_amount,created_at,started_at FROM matches WHERE status IN ('active','waiting') ORDER BY CASE WHEN status='active' THEN 0 ELSE 1 END,COALESCE(started_at,created_at) DESC LIMIT 4").all();const activeCount=db.prepare("SELECT COUNT(*) n FROM matches WHERE status='active'").get().n;const waitingCount=db.prepare("SELECT COUNT(*) n FROM matches WHERE status='waiting'").get().n;return {activeCount,waitingCount,items:rows.map((m,i)=>({tableNumber:i+1,status:m.status,entryFee:m.entry_fee/100,betAmount:m.bet_amount/100,createdAt:m.created_at,startedAt:m.started_at}))};}
+function publicArena(){
+  const rows=db.prepare("SELECT id,status,entry_fee,bet_amount,created_at,started_at,state_json,revision FROM matches WHERE status IN ('active','waiting') ORDER BY CASE WHEN status='active' THEN 0 ELSE 1 END,COALESCE(started_at,created_at) DESC LIMIT 4").all();
+  const activeCount=db.prepare("SELECT COUNT(*) n FROM matches WHERE status='active'").get().n;
+  const waitingCount=db.prepare("SELECT COUNT(*) n FROM matches WHERE status='waiting'").get().n;
+  return {activeCount,waitingCount,items:rows.map((m,i)=>{
+    let board=null;
+    if(m.status==='active'&&m.state_json){
+      try{
+        const s=JSON.parse(m.state_json);
+        board={
+          revision:Number(m.revision||s.revision||0),
+          turnSeat:Number(s.turnSeat||0),
+          rolled:s.rolled==null?null:Number(s.rolled),
+          players:Array.isArray(s.players)?s.players.slice(0,2).map((p,seat)=>({seat,tokens:Array.isArray(p.tokens)?p.tokens.slice(0,4).map(Number):[-1,-1,-1,-1]})):[]
+        };
+      }catch{}
+    }
+    return {tableNumber:i+1,status:m.status,entryFee:m.entry_fee/100,betAmount:m.bet_amount/100,createdAt:m.created_at,startedAt:m.started_at,board};
+  })};
+}
 const server=http.createServer(async(req,res)=>{
   const ip=clientIp(req); if(limited(`ip:${ip}`,150))return json(res,429,{error:'RATE_LIMIT'});
   try{
