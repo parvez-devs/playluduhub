@@ -119,7 +119,12 @@
       if(state?.revision!==oldRevision){rollPending=false;movePending=false;GameRenderer.clearPending?.();}
       queueRender();return;
     }
-    if(m.type==='dice'){animateDice(m.value);sound('dice');haptic(8);log('🎲 '+name(m.by)+' rolled '+m.value);return;}
+    if(m.type==='dice'){
+      animateDice(m.value);sound('dice');haptic(8);log('🎲 '+name(m.by)+' rolled '+m.value);
+      if(m.forfeit)setTimeout(()=>gameToast('THREE SIXES • TURN LOST','warn'),820);
+      else if(m.autoPass)setTimeout(()=>gameToast('NO LEGAL MOVE • TURN PASSED','warn'),820);
+      return;
+    }
     if(m.type==='move'){
       const steps=Math.max(1,Array.isArray(m.path)?m.path.length:1);
       const hold=Math.min(1100,170+steps*118+(m.captured?.length?220:0));
@@ -127,6 +132,7 @@
       clearTimeout(presentationTimer);presentationTimer=setTimeout(()=>queueRender(),hold+20);
       if(m.reachedHome){sound('home');haptic([15,30,15]);gameToast('TOKEN HOME • EXTRA TURN','good');}
       else if(m.captured?.length){sound('capture');haptic([20,25,20]);gameToast('CAPTURE! • EXTRA TURN','warn');}
+      else if(m.extraTurn){sound('move');gameToast('SIX • EXTRA TURN','good');}
       else sound('move');
       log('Token '+(Number(m.tokenId)+1)+' moved by '+name(m.by)+(m.captured?.length?' • capture!':m.reachedHome?' • home!':''));
       return;
