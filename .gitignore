@@ -1,6 +1,9 @@
 node_modules/
 config.sh
 .env
+.env.*
+!.env.example
+supabase/.temp/
 data/*.sqlite
 data/*.sqlite-*
 data/backups/
