@@ -9,11 +9,12 @@ async function signup(input){
   if(db.prepare('SELECT 1 FROM users WHERE email=? COLLATE NOCASE LIMIT 1').get(email))throw err('EMAIL_TAKEN');
   const placeholders=variants.map(()=>'?').join(',');
   if(db.prepare(`SELECT 1 FROM users WHERE phone IN (${placeholders}) LIMIT 1`).get(...variants))throw err('PHONE_TAKEN');
-  const id=uid('usr'),ph=await scryptHash(x.password),t=Date.now();
+  const id=uid('usr'),ph=await scryptHash(x.password),t=Date.now(),otpRequired=process.env.PHONE_OTP_REQUIRED==='1';
   db.transaction(()=>{
-    db.prepare('INSERT INTO users(id,name,username,phone,email,password_hash,display_name,phone_verified,created_at,updated_at) VALUES(?,?,?,?,?,?,?,0,?,?)').run(id,x.name,x.username,phone,email,ph,x.name,t,t);
+    db.prepare('INSERT INTO users(id,name,username,phone,email,password_hash,display_name,phone_verified,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run(id,x.name,x.username,phone,email,ph,x.name,otpRequired?0:1,t,t);
     wallet.createWallet(id);
   })();
+  if(!otpRequired)return {user:publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(id)),verification:null};
   try{
     const verification=await otp.startForUser(id,phone);
     return {user:publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(id)),verification};
