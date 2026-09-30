@@ -24,16 +24,48 @@ function brand(){return '<div class="brand"><span>◆</span><div><b>PLAY LUDU HU
 function initials(u:any){return String(u?.displayName||u?.name||u?.username||'P').trim().slice(0,1).toUpperCase();}
 function avatar(u:any,large=false){return '<div class="avatar '+(large?'large':'')+'">'+(u?.avatar?'<img src="'+e(u.avatar)+'" alt="">':e(initials(u)))+'</div>';}
 
-function demoBoard(){
-  return '<div class="ludo-mini"><i class="home red"></i><i class="home green"></i><i class="home blue"></i><i class="home yellow"></i><i class="cross v"></i><i class="cross h"></i><i class="center"></i><b class="pawn p1">1</b><b class="pawn p2">2</b><b class="pawn g1">1</b><b class="pawn g2">2</b></div>';
+const TRACK:number[][]=[
+  [6,13],[6,12],[6,11],[6,10],[6,9],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8],[0,7],[0,6],
+  [1,6],[2,6],[3,6],[4,6],[5,6],[6,5],[6,4],[6,3],[6,2],[6,1],[6,0],[7,0],[8,0],
+  [8,1],[8,2],[8,3],[8,4],[8,5],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[14,7],[14,8],
+  [13,8],[12,8],[11,8],[10,8],[9,8],[8,9],[8,10],[8,11],[8,12],[8,13],[8,14],[7,14],[6,14]
+];
+const LANES:number[][][]=[
+  [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],
+  [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]]
+];
+const YARD_POS:number[][][]=[
+  [[2.15,11.1],[3.85,11.1],[2.15,12.9],[3.85,12.9]],
+  [[11.15,2.1],[12.85,2.1],[11.15,3.9],[12.85,3.9]]
+];
+function boardCoord(seat:number,progress:number,token:number){
+  if(progress<0)return YARD_POS[seat]?.[token]||[7,7];
+  if(progress<52)return TRACK[(progress+(seat===1?26:0))%52];
+  return LANES[seat]?.[Math.min(5,progress-52)]||[7,7];
 }
+function boardTokens(board:any){
+  const players=Array.isArray(board?.players)?board.players:[];
+  return players.slice(0,2).flatMap((p:any,seat:number)=>(Array.isArray(p.tokens)?p.tokens:[]).slice(0,4).map((progress:any,token:number)=>{
+    const [x,y]=boardCoord(seat,Number(progress),token);
+    return '<b class="live-pawn s'+seat+'" style="--px:'+(((x+.5)/15)*100).toFixed(2)+'%;--py:'+(((y+.5)/15)*100).toFixed(2)+'%">'+(token+1)+'</b>';
+  })).join('');
+}
+function ludoBoard(board:any=null,demo=false){
+  const turn=Number(board?.turnSeat||0),rolled=board?.rolled;
+  return '<div class="ludo-mini '+(board?'has-live-state':'')+'">'+
+    '<i class="home red"></i><i class="home green"></i><i class="home blue"></i><i class="home yellow"></i><i class="cross v"></i><i class="cross h"></i><i class="center"></i>'+
+    (board?'<div class="live-pawns">'+boardTokens(board)+'</div><span class="mini-dice s'+turn+'">'+(rolled==null?'•':e(rolled))+'</span><small class="mini-turn s'+turn+'">'+(turn===0?'BLUE':'GREEN')+' TURN</small>':
+      demo?'<b class="pawn p1">1</b><b class="pawn p2">2</b><b class="pawn g1">1</b><b class="pawn g2">2</b>':'')+
+  '</div>';
+}
+function demoBoard(){return ludoBoard(null,true);}
 
 async function renderLanding(){
   shell('<div class="landing">'+
     '<header class="landing-nav">'+brand()+'<div class="landing-actions"><button class="btn ghost" data-auth="login">Sign in</button><button class="btn primary" data-auth="signup">Create account</button></div></header>'+
     '<main class="landing-main">'+
       '<section class="hero"><div class="hero-copy"><span class="live"><i></i> REAL-TIME LUDO ARENA</span><h1>Play fast.<br><em>Play clean.</em></h1><p>Server-controlled dice, real-time two-player matches and a focused mobile experience built for competitive PvP.</p><div class="hero-actions"><button class="btn primary xl" data-auth="signup">Start playing →</button><button class="btn ghost xl" data-arena>Live arena</button></div><div class="trust"><span>✓ Server-authoritative</span><span>✓ 10s turns</span><span>✓ Real-time sync</span></div></div>'+
-      '<aside class="hero-game"><div class="hero-game-head"><span>ARENA PREVIEW</span><b>SERVER VERIFIED</b></div>'+demoBoard()+'<div class="hero-game-foot"><span>BLUE</span><b id="heroTableLabel">DEMO TABLE</b><span>GREEN</span></div></aside></section>'+
+      '<aside class="hero-game"><div class="hero-game-head"><span id="heroPreviewTitle">DEMO PREVIEW</span><b>SERVER VERIFIED</b></div><div id="heroBoard">'+demoBoard()+'</div><div class="hero-game-foot"><span>BLUE</span><b id="heroTableLabel">DEMO TABLE</b><span>GREEN</span></div></aside></section>'+
       '<section id="arenaSection" class="arena-section"><div class="section-head"><div><span>LIVE NOW</span><h2>Arena tables</h2></div><b id="arenaCount">0 active • 0 waiting</b></div><div id="publicArena" class="arena-grid"><div class="loading">Loading arena…</div></div></section>'+
       '<section class="cta-panel"><div><span>PLAYER ACCESS</span><h2>Ready for your next match?</h2><p>Sign in with an approved account or create a verified player profile.</p></div><button class="btn primary xl" data-auth="login">Enter arena →</button></section>'+
     '</main><footer class="landing-footer">'+brand()+'<small>PLAY LUDU HUB • Secure PvP Platform</small></footer></div>');
@@ -46,10 +78,23 @@ async function loadPublicArena(){
     const r=await api('/api/public/arena'),box=document.querySelector('#publicArena'),count=document.querySelector('#arenaCount');
     if(count)count.textContent=String(r.activeCount||0)+' active • '+String(r.waitingCount||0)+' waiting';
     const items=r.items||[];
-    if(box)box.innerHTML=items.length?items.map((m:any,i:number)=>'<article class="arena-card"><div class="arena-top"><span>TABLE #'+(m.tableNumber||i+1)+'</span><b class="'+e(m.status)+'">'+e(String(m.status).toUpperCase())+'</b></div>'+demoBoard()+'<div class="arena-stakes"><span><small>BET</small><b>'+money(m.betAmount)+'</b></span><span><small>ENTRY</small><b>'+money(m.entryFee)+'</b></span></div></article>').join(''):'<div class="empty wide"><span>♜</span><h3>No public tables right now</h3><p>Sign in and create the next PvP table.</p><button class="btn primary" data-auth-empty>Enter arena</button></div>';
+    if(box)box.innerHTML=items.length?items.map((m:any,i:number)=>'<article class="arena-card"><div class="arena-top"><span>TABLE #'+(m.tableNumber||i+1)+'</span><b class="'+e(m.status)+'">'+e(String(m.status).toUpperCase())+'</b></div>'+ludoBoard(m.status==='active'?m.board:null,false)+'<div class="arena-stakes"><span><small>BET</small><b>'+money(m.betAmount)+'</b></span><span><small>ENTRY</small><b>'+money(m.entryFee)+'</b></span></div></article>').join(''):'<div class="empty wide"><span>♜</span><h3>No public tables right now</h3><p>Sign in and create the next PvP table.</p><button class="btn primary" data-auth-empty>Enter arena</button></div>';
     document.querySelector('[data-auth-empty]')?.addEventListener('click',()=>renderAuth('login'));
-    const live=items.find((x:any)=>x.status==='active')||items[0];
-    if(live){const lab=document.querySelector('#heroTableLabel');if(lab)lab.textContent='TABLE #'+live.tableNumber+' • '+money(live.betAmount)+' BET';}
+    const live=items.find((x:any)=>x.status==='active'&&x.board),waiting=!live&&items.find((x:any)=>x.status==='waiting');
+    const heroBoard=document.querySelector('#heroBoard'),lab=document.querySelector('#heroTableLabel'),title=document.querySelector('#heroPreviewTitle');
+    if(live){
+      if(heroBoard)heroBoard.innerHTML=ludoBoard(live.board,false);
+      if(lab)lab.textContent='TABLE #'+live.tableNumber+' • '+money(live.betAmount)+' BET';
+      if(title)title.textContent='LIVE MATCH';
+    }else if(waiting){
+      if(heroBoard)heroBoard.innerHTML=ludoBoard(null,false);
+      if(lab)lab.textContent='TABLE #'+waiting.tableNumber+' • WAITING';
+      if(title)title.textContent='WAITING TABLE';
+    }else{
+      if(heroBoard)heroBoard.innerHTML=demoBoard();
+      if(lab)lab.textContent='DEMO TABLE';
+      if(title)title.textContent='DEMO PREVIEW';
+    }
   }catch{}
 }
 
