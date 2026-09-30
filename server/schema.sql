@@ -5,7 +5,9 @@ CREATE TABLE IF NOT EXISTS users(
  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected','banned')),
  avatar TEXT, display_name TEXT,
  self_excluded INTEGER NOT NULL DEFAULT 0 CHECK(self_excluded IN(0,1)), cool_off_until INTEGER,
- daily_deposit_limit INTEGER, phone_verified INTEGER NOT NULL DEFAULT 1 CHECK(phone_verified IN(0,1)), email_verified INTEGER NOT NULL DEFAULT 0 CHECK(email_verified IN(0,1)), google_sub TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+ daily_deposit_limit INTEGER, phone_verified INTEGER NOT NULL DEFAULT 1 CHECK(phone_verified IN(0,1)), email_verified INTEGER NOT NULL DEFAULT 0 CHECK(email_verified IN(0,1)), google_sub TEXT,
+ referral_code TEXT UNIQUE, referred_by TEXT REFERENCES users(id),
+ created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS wallets(
  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -56,4 +58,21 @@ CREATE TABLE IF NOT EXISTS google_oauth_states(state_hash TEXT PRIMARY KEY,expir
 CREATE TABLE IF NOT EXISTS google_signup_sessions(token_hash TEXT PRIMARY KEY,google_sub TEXT NOT NULL UNIQUE,email TEXT NOT NULL,name TEXT NOT NULL,avatar TEXT,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL;
 CREATE TABLE IF NOT EXISTS disputes(id TEXT PRIMARY KEY,match_id TEXT NOT NULL REFERENCES matches(id),opened_by TEXT REFERENCES users(id),reason TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'open' CHECK(status IN('open','resolved','rejected')),resolution TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS referrals(
+ referrer_id TEXT NOT NULL REFERENCES users(id),
+ referred_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+ code TEXT NOT NULL,
+ games_completed INTEGER NOT NULL DEFAULT 0 CHECK(games_completed>=0),
+ rewarded_at INTEGER,
+ reward_amount INTEGER NOT NULL DEFAULT 0 CHECK(reward_amount>=0),
+ created_at INTEGER NOT NULL,
+ PRIMARY KEY(referrer_id,referred_id)
+);
+CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS referral_games(
+ match_id TEXT NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ created_at INTEGER NOT NULL,
+ PRIMARY KEY(match_id,user_id)
+);
 
