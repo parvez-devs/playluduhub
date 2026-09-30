@@ -27,7 +27,8 @@
   ]);
   const tokenEls=new Map(),lastProgress=new Map(),lastPlacement=new Map(),animationVersion=new Map();
   let boardRef=null,stateRef=null,myIdRef=null,onTokenRef=null,resizeQueued=false,cellPx=0,viewerSeat=0;
-  const STEP_MS=42;
+  const STEP_MS=118;
+  const CAPTURE_MS=260;
 
   function key(x,y){return x+','+y;}
   function tokenKey(seat,i){return seat+':'+i;}
@@ -68,9 +69,12 @@
     grid.appendChild(cells);frag.appendChild(grid);art.appendChild(frag);
   }
   function tokenSvg(colour){
-    return '<svg viewBox="0 0 6.6145832 10.395" aria-hidden="true">'+
-      '<circle cx="3.2954681" cy="2.9856167" r="1.9285219" fill="'+colour+'" stroke="#171717" stroke-width=".36"/>'+
-      '<path fill="#d0d0d0" stroke="#171717" stroke-width=".38" stroke-linecap="round" stroke-linejoin="round" d="M3.1295321 9.7939401C2.2845619 7.9256536.53665551 4.006563.34551669 3.5517238.25691473 3.3408843.24716233 3.3064799.24143802 3.1845594.2337783 3.0214167.25899442 2.8256839.31977005 2.576529.56954314 1.5525634 1.340042.72049031 2.3435691.39099851 3.0819463.14856432 3.9021053.2005165 4.6055247.5342799 5.1265566.78150289 5.611332 1.2145903 5.905353 1.6955172 6.1696785 2.1278719 6.3254638 2.6280288 6.3598214 3.154614L6.36981 3.307732 5.362197 5.568294C4.375839 7.7811692 3.7574616 9.1664313 3.4617027 9.8256991c-.0813.1812239-.1525362.3294989-.1583018.3294989-.00576 0-.084006-.1625664-.1738688-.3612579zM3.7162743 4.9228615C4.1095107 4.8293096 4.4159721 4.6598997 4.6928617 4.3830101 4.9306057 4.1452661 5.07272 3.9128522 5.1836267 3.5804128 5.3046516 3.2176431 5.3046516 2.75359 5.1836267 2.3908205 5.0722049 2.0568363 4.9295919 1.8231777 4.6936225 1.5879921 4.4598902 1.3550358 4.2018078 1.1962578 3.8988882 1.0990541 3.6743057 1.0269879 3.5970439 1.0166493 3.2875286 1.0172472c-.2500273.000483-.31492.00586-.4358082.036107-.69382.1736-1.2139033.6495791-1.4368359 1.3149885-.075602.2256569-.1009956.419225-.091394.6966715.011823.341638.093487.63435.2525236.9051298.2969749.5056371.7534792.8335569 1.3383471.9613714.121772.026612.1840274.030098.4208061.023568.1689575-.00466.3183516-.017293.381107-.032222z"/>'+
+    return '<svg viewBox="0 0 100 100" aria-hidden="true">'+
+      '<ellipse cx="50" cy="81" rx="34" ry="11" fill="#111" opacity=".22"/>'+
+      '<path d="M31 72c4-14 10-22 13-29h12c3 7 9 15 13 29-10 8-28 8-38 0z" fill="'+colour+'" stroke="#16202a" stroke-width="4" stroke-linejoin="round"/>'+
+      '<circle cx="50" cy="31" r="19" fill="'+colour+'" stroke="#16202a" stroke-width="4"/>'+
+      '<circle cx="44" cy="25" r="5" fill="#fff" opacity=".34"/>'+
+      '<ellipse cx="50" cy="72" rx="23" ry="7" fill="#fff" opacity=".12"/>'+
       '</svg>';
   }
   function ensureToken(layer,seat,i){
@@ -91,7 +95,7 @@
       if(!groups.has(g))groups.set(g,[]);
       groups.get(g).push(tokenKey(seat,i));
     }));
-    const pat=[[0,0],[-.13,-.11],[.13,.11],[-.13,.13],[.13,-.13],[0,-.18],[0,.18],[.18,0]];
+    const pat=[[0,0],[-.20,-.18],[.20,.18],[-.20,.18],[.20,-.18],[0,-.23],[0,.23],[.23,0]];
     for(const arr of groups.values())arr.forEach((k,i)=>out.set(k,pat[i]||[0,0]));
     return out;
   }
@@ -111,7 +115,7 @@
     const version=(animationVersion.get(k)||0)+1;animationVersion.set(k,version);
     if(to===-1&&from>=0){
       el.classList.add('captured');
-      setTimeout(()=>{if(animationVersion.get(k)!==version)return;setPosition(el,seat,-1,i);el.classList.remove('captured');},STEP_MS);
+      setTimeout(()=>{if(animationVersion.get(k)!==version)return;setPosition(el,seat,-1,i);el.classList.remove('captured');},CAPTURE_MS);
       return;
     }
     const seq=[];
