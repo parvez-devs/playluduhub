@@ -25,6 +25,8 @@ create table if not exists public.users (
   phone_verified boolean not null default true,
   email_verified boolean not null default false,
   google_sub text unique,
+  referral_code text unique,
+  referred_by text references public.users(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -192,6 +194,25 @@ create table if not exists public.disputes (
 );
 create index if not exists disputes_status_created_idx on public.disputes(status, created_at desc);
 
+create table if not exists public.referrals (
+  referrer_id text not null references public.users(id) on delete restrict,
+  referred_id text not null unique references public.users(id) on delete cascade,
+  code text not null,
+  games_completed integer not null default 0 check (games_completed >= 0),
+  rewarded_at timestamptz,
+  reward_amount bigint not null default 0 check (reward_amount >= 0),
+  created_at timestamptz not null default now(),
+  primary key(referrer_id,referred_id)
+);
+create index if not exists referrals_referrer_created_idx on public.referrals(referrer_id,created_at desc);
+
+create table if not exists public.referral_games (
+  match_id text not null references public.matches(id) on delete cascade,
+  user_id text not null references public.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key(match_id,user_id)
+);
+
 create table if not exists public.aml_flags (
   id text primary key,
   user_id text not null references public.users(id) on delete restrict,
@@ -338,6 +359,8 @@ alter table public.payment_methods enable row level security;
 alter table public.matches enable row level security;
 alter table public.match_players enable row level security;
 alter table public.disputes enable row level security;
+alter table public.referrals enable row level security;
+alter table public.referral_games enable row level security;
 alter table public.aml_flags enable row level security;
 alter table public.audit_log enable row level security;
 alter table public.app_config enable row level security;
@@ -364,11 +387,14 @@ drop policy if exists disputes_read_own on public.disputes;
 create policy disputes_read_own on public.disputes for select to authenticated using (opened_by=(select public.plh_current_user_id()));
 drop policy if exists payment_methods_read_enabled on public.payment_methods;
 create policy payment_methods_read_enabled on public.payment_methods for select to authenticated using (enabled=true);
+drop policy if exists referrals_read_own on public.referrals;
+create policy referrals_read_own on public.referrals for select to authenticated
+using (referrer_id=(select public.plh_current_user_id()) or referred_id=(select public.plh_current_user_id()));
 
-revoke all on table public.users,public.wallets,public.ledger,public.admin_accounts,public.admin_ledger,public.sessions,public.admin_sessions,public.admin_devices,public.deposits,public.withdrawals,public.payment_methods,public.matches,public.match_players,public.disputes,public.aml_flags,public.audit_log,public.app_config,public.idempotency_keys,public.email_verifications,public.google_oauth_states,public.google_signup_sessions from anon, authenticated;
+revoke all on table public.users,public.wallets,public.ledger,public.admin_accounts,public.admin_ledger,public.sessions,public.admin_sessions,public.admin_devices,public.deposits,public.withdrawals,public.payment_methods,public.matches,public.match_players,public.disputes,public.referrals,public.referral_games,public.aml_flags,public.audit_log,public.app_config,public.idempotency_keys,public.email_verifications,public.google_oauth_states,public.google_signup_sessions from anon, authenticated;
 grant usage on schema public to authenticated;
-grant select on public.users,public.wallets,public.ledger,public.deposits,public.withdrawals,public.payment_methods,public.matches,public.match_players,public.disputes to authenticated;
-grant select,insert,update,delete on public.users,public.wallets,public.deposits,public.withdrawals,public.payment_methods,public.matches,public.match_players,public.disputes,public.aml_flags,public.audit_log,public.app_config,public.idempotency_keys,public.sessions,public.admin_sessions,public.admin_devices,public.email_verifications,public.google_oauth_states,public.google_signup_sessions to service_role;
+grant select on public.users,public.wallets,public.ledger,public.deposits,public.withdrawals,public.payment_methods,public.matches,public.match_players,public.disputes,public.referrals to authenticated;
+grant select,insert,update,delete on public.users,public.wallets,public.deposits,public.withdrawals,public.payment_methods,public.matches,public.match_players,public.disputes,public.referrals,public.referral_games,public.aml_flags,public.audit_log,public.app_config,public.idempotency_keys,public.sessions,public.admin_sessions,public.admin_devices,public.email_verifications,public.google_oauth_states,public.google_signup_sessions to service_role;
 grant select,insert on public.ledger,public.admin_ledger to service_role;
 grant select,insert,update on public.admin_accounts to service_role;
 
