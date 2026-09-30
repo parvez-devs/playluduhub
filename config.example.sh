@@ -28,6 +28,8 @@ export TRUST_PROXY='0'
 
 
 # Phone OTP verification (Twilio Verify v2)
+# Keep 0 until Twilio credentials are configured. Set 1 to require OTP for every new signup.
+export PHONE_OTP_REQUIRED='0'
 # Create a Verify Service in Twilio, then set either API Key/Secret or Account SID/Auth Token.
 export TWILIO_VERIFY_SERVICE_SID=''
 export TWILIO_ACCOUNT_SID=''
