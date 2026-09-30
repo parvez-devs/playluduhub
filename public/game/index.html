@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#080b12">
   <title>PLAY LUDU HUB • V5 PvP Ludo</title>
-  <link rel="stylesheet" href="/game/style.css?v=game-fix-4">
+  <link rel="stylesheet" href="/game/style.css?v=game-pro-1">
 </head>
 <body>
 <div id="boot" class="boot" aria-label="Loading Play Ludu Hub">
@@ -18,11 +18,20 @@
 </div>
 
 <div class="game">
-  <button id="exitBtn" class="exit-btn" type="button" aria-label="Exit match">×</button>
+  <header class="game-topbar">
+    <button id="exitBtn" class="exit-btn" type="button" aria-label="Exit match">‹</button>
+    <div class="game-title">
+      <span>PLAY LUDU HUB</span>
+      <strong id="matchCode">LIVE MATCH</strong>
+    </div>
+    <span class="secure-badge">● LIVE</span>
+  </header>
 
   <div class="match-strip">
     <div id="p0" class="player-pill blue">
-      <i></i><div><b>BLUE</b><small data-name>Player A</small></div><em data-strikes></em>
+      <span class="player-avatar" data-avatar>A</span>
+      <div class="player-copy"><b>BLUE</b><small data-name>Player A</small><span data-home>0 / 4 HOME</span></div>
+      <em data-strikes></em>
     </div>
     <div class="match-mid">
       <span id="connection" class="connection">Connecting…</span>
@@ -30,24 +39,33 @@
       <small id="status" aria-live="polite">Loading match state…</small>
     </div>
     <div id="p1" class="player-pill green">
-      <i></i><div><b>GREEN</b><small data-name>Player B</small></div><em data-strikes></em>
+      <span class="player-avatar" data-avatar>B</span>
+      <div class="player-copy"><b>GREEN</b><small data-name>Player B</small><span data-home>0 / 4 HOME</span></div>
+      <em data-strikes></em>
     </div>
   </div>
 
   <main class="stage">
-    <div id="board" class="board" aria-label="Ludo board">
-      <div id="boardArt" class="board-art" aria-hidden="true"></div>
-      <div id="tokenLayer" class="token-layer"></div>
-      <div id="waitingOverlay" class="waiting-overlay hidden">
+    <div class="board-shell">
+      <div class="board-topline"><span id="turnBanner">WAITING FOR MATCH</span><small>SERVER VERIFIED</small></div>
+      <div id="board" class="board" aria-label="Ludo board">
+        <div id="boardArt" class="board-art" aria-hidden="true"></div>
+        <div id="tokenLayer" class="token-layer"></div>
+        <div id="waitingOverlay" class="waiting-overlay hidden">
         <div class="waiting-spinner"></div>
         <b>WAITING FOR OPPONENT</b>
         <span>Your stake is locked safely until the match starts.</span>
+        </div>
       </div>
     </div>
+
+    <div id="gameToast" class="game-toast hidden" aria-live="polite"></div>
+    <div id="netOverlay" class="net-overlay hidden"><span></span><b>RECONNECTING</b><small>Restoring live match state…</small></div>
 
     <div class="control-rail">
       <div id="diceStation" class="dice-container shared blue">
         <span id="turnColour" class="turn-colour">BLUE TURN</span>
+        <span id="rollHint" class="roll-hint">WAITING</span>
         <button id="roll" class="dice" type="button" disabled aria-label="Roll dice">
           <div id="diceFace" class="dice-face" aria-hidden="true"></div>
         </button>
@@ -87,7 +105,7 @@
   </div>
 </div>
 
-<script src="/game/game-engine.js?v=game-fix-4"></script>
-<script src="/game/pvp-client.js?v=game-fix-4"></script>
+<script src="/game/game-engine.js?v=game-pro-1"></script>
+<script src="/game/pvp-client.js?v=game-pro-1"></script>
 </body>
 </html>
