@@ -14,9 +14,45 @@ async function users(){const r=await AdminAPI('/api/admin/users');$('#view').inn
 async function setStatus(id,status){try{await AdminAPI(`/api/admin/users/${id}/status`,{method:'POST',body:{status}});toast('Status updated');users();}catch(e){toast(e.message,true);}}
 async function adjust(id){const bucket=prompt('Bucket: cash, winnings, bonus','cash');if(!bucket)return;const amount=Number(prompt('Amount in taka (negative allowed)','0'));if(!amount)return;const note=prompt('Audit note','Admin adjustment');try{await AdminAPI(`/api/admin/users/${id}/adjust`,{method:'POST',headers:{'idempotency-key':crypto.randomUUID()},body:{bucket,amount,note}});toast('Balance adjusted');users();}catch(e){toast(e.message,true);}}
 async function matches(){const r=await AdminAPI('/api/admin/live-matches');window.__liveMatches=r.items;$('#view').innerHTML=`<div class="card"><h2>Live / Disputed Matches</h2>${table(['id','status','playerAId','playerBId','entryFee','betAmount','startedAt'],r.items,x=>`<div class="actions"><button data-watch="${x.id}" class="secondary">Watch</button><button data-force="${x.id}">Force end</button></div>`)}</div>`;document.querySelectorAll('[data-watch]').forEach(b=>b.onclick=()=>{const m=window.__liveMatches.find(x=>x.id===b.dataset.watch);$('#modalBody').innerHTML=`<h3>${esc(m.id)}</h3><pre class="json">${esc(JSON.stringify(m.state,null,2))}</pre>`;$('#modal').classList.remove('hidden');});document.querySelectorAll('[data-force]').forEach(b=>b.onclick=async()=>{const winnerId=prompt('Winner user ID');if(!winnerId)return;const reason=prompt('Reason','admin_force_end');try{await AdminAPI(`/api/admin/matches/${b.dataset.force}/force-end`,{method:'POST',headers:{'idempotency-key':crypto.randomUUID()},body:{winnerId,reason}});toast('Match settled');matches();}catch(e){toast(e.message,true);}});}
-async function methods(){const r=await AdminAPI('/api/admin/payment-methods');$('#view').innerHTML=`<div class="card"><h2>Payment Methods</h2><form id="methodForm" class="row"><select name="kind"><option value="deposit">Deposit</option><option value="withdrawal">Withdrawal</option></select><select name="method"><option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="other">Other</option></select><input name="label" placeholder="Label" required><input name="accountNumber" placeholder="Merchant number" required><label><input type="checkbox" name="enabled" checked> Enabled</label><button>Save</button></form><br>${table(['kind','method','label','account_number','enabled'],r.items,x=>`<div class="actions"><button data-medit="${x.id}" class="secondary">Edit</button><button data-mdisable="${x.id}" class="danger">Disable</button></div>`)}</div>`;document.querySelectorAll('[data-medit]').forEach(b=>b.onclick=()=>editMethod(r.items.find(x=>x.id===b.dataset.medit)));document.querySelectorAll('[data-mdisable]').forEach(b=>b.onclick=()=>disableMethod(r.items.find(x=>x.id===b.dataset.mdisable)));$('#methodForm').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);try{await AdminAPI('/api/admin/payment-methods',{method:'POST',body:{kind:f.get('kind'),method:f.get('method'),label:f.get('label'),accountNumber:f.get('accountNumber'),enabled:f.get('enabled')==='on'}});toast('Payment method saved');methods();}catch(x){toast(x.message,true);}};}
+async function methods(){
+  const r=await AdminAPI('/api/admin/payment-methods'),items=r.items||[];
+  const live=items.filter(x=>x.enabled),depositLive=live.filter(x=>x.kind==='deposit').length,withdrawLive=live.filter(x=>x.kind==='withdrawal').length;
+  $('#view').innerHTML=`
+    <div class="card payment-admin-card">
+      <div class="admin-section-head">
+        <div><span class="eyebrow">PLAYER WALLET SYNC</span><h2>Payment Methods</h2><p class="muted">Enabled Deposit numbers show automatically on the player Deposit page. Withdrawal entries control which payout methods users can select.</p></div>
+        <div class="sync-badges"><span><b>${depositLive}</b> Deposit live</span><span><b>${withdrawLive}</b> Withdrawal live</span></div>
+      </div>
+      <form id="methodForm" class="payment-method-form">
+        <div class="field"><label>Show in</label><select name="kind"><option value="deposit">Deposit page</option><option value="withdrawal">Withdrawal page</option></select></div>
+        <div class="field"><label>Wallet</label><select name="method"><option value="bkash">bKash</option><option value="nagad">Nagad</option></select></div>
+        <div class="field"><label>Display label</label><input name="label" placeholder="e.g. bKash Send Money" required></div>
+        <div class="field"><label>Number / account</label><input name="accountNumber" inputmode="numeric" placeholder="01XXXXXXXXX" required></div>
+        <label class="admin-toggle"><input type="checkbox" name="enabled" checked><span></span><b>Visible to players</b></label>
+        <button class="method-save" type="submit">SAVE METHOD</button>
+      </form>
+      <div class="admin-info-strip">Tip: For a merchant number to appear on Deposit, choose <b>Deposit page</b> and keep <b>Visible to players</b> enabled.</div>
+      <div class="method-admin-grid">
+        ${items.length?items.map(x=>`
+          <article class="method-admin-item ${x.enabled?'live':'off'}">
+            <div class="method-admin-logo ${esc(x.method)}">${x.method==='bkash'?'bK':x.method==='nagad'?'N':'৳'}</div>
+            <div class="method-admin-copy"><span>${esc(x.kind)} • ${x.enabled?'LIVE':'HIDDEN'}</span><b>${esc(x.label)}</b><small>${esc(x.account_number)}</small></div>
+            <div class="method-admin-actions"><button data-medit="${x.id}" class="secondary">Edit</button><button data-mtoggle="${x.id}" class="${x.enabled?'danger':'secondary'}">${x.enabled?'Hide':'Enable'}</button></div>
+          </article>`).join(''):'<div class="admin-empty">No payment methods configured yet.</div>'}
+      </div>
+    </div>`;
+  document.querySelectorAll('[data-medit]').forEach(b=>b.onclick=()=>editMethod(items.find(x=>x.id===b.dataset.medit)));
+  document.querySelectorAll('[data-mtoggle]').forEach(b=>b.onclick=()=>toggleMethod(items.find(x=>x.id===b.dataset.mtoggle)));
+  $('#methodForm').onsubmit=async e=>{
+    e.preventDefault();const f=new FormData(e.target),btn=e.submitter;btn.disabled=true;btn.textContent='SAVING…';
+    try{
+      await AdminAPI('/api/admin/payment-methods',{method:'POST',body:{kind:f.get('kind'),method:f.get('method'),label:f.get('label'),accountNumber:f.get('accountNumber'),enabled:f.get('enabled')==='on'}});
+      toast('Payment method saved and player wallet synced');methods();
+    }catch(x){btn.disabled=false;btn.textContent='SAVE METHOD';toast(x.message,true);}
+  };
+}
 async function editMethod(x){const label=prompt('Label',x.label);if(label==null)return;const accountNumber=prompt('Merchant/account number',x.account_number);if(accountNumber==null)return;try{await AdminAPI('/api/admin/payment-methods',{method:'POST',body:{id:x.id,kind:x.kind,method:x.method,label,accountNumber,enabled:!!x.enabled}});toast('Payment method updated');methods();}catch(e){toast(e.message,true);}}
-async function disableMethod(x){try{await AdminAPI('/api/admin/payment-methods',{method:'POST',body:{id:x.id,kind:x.kind,method:x.method,label:x.label,accountNumber:x.account_number,enabled:false}});toast('Payment method disabled');methods();}catch(e){toast(e.message,true);}}
+async function toggleMethod(x){try{await AdminAPI('/api/admin/payment-methods',{method:'POST',body:{id:x.id,kind:x.kind,method:x.method,label:x.label,accountNumber:x.account_number,enabled:!x.enabled}});toast(x.enabled?'Payment method hidden from players':'Payment method enabled for players');methods();}catch(e){toast(e.message,true);}}
 async function config(){const r=await AdminAPI('/api/admin/dashboard'),c=r.config;$('#view').innerHTML=`<div class="card"><h2>Configuration</h2><form id="configForm" class="grid">${Object.entries(c).map(([k,v])=>`<div class="field span4"><label>${esc(k)}</label>${typeof v==='boolean'?`<select name="${esc(k)}"><option value="true" ${v?'selected':''}>true</option><option value="false" ${!v?'selected':''}>false</option></select>`:`<input name="${esc(k)}" value="${esc(v)}">`}</div>`).join('')}<div class="span4"><button>Save config</button></div></form></div>`;$('#configForm').onsubmit=async e=>{e.preventDefault();const out={};for(const [k,v]of new FormData(e.target)){if(v==='true'||v==='false')out[k]=v==='true';else if(v!==''&&!Number.isNaN(Number(v)))out[k]=Number(v);else out[k]=v;}try{await AdminAPI('/api/admin/config',{method:'POST',body:out});toast('Configuration saved');config();}catch(x){toast(x.message,true);}};}
 async function ledger(){const r=await AdminAPI('/api/admin/ledger?limit=500');$('#view').innerHTML=`<div class="card"><div class="row"><h2>Ledger</h2><a href="/api/admin/ledger.csv" target="_blank"><button>Export CSV</button></a></div>${table(['created_at','username','type','balance_bucket','amount','balance_after','ref_id'],r.items)}</div>`;}
 async function aml(){const r=await AdminAPI('/api/admin/aml');$('#view').innerHTML=`<div class="card"><h2>Open AML Flags</h2>${table(['created_at','username','kind','severity','ref_id','details'],r.items)}</div>`;}
