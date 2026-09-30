@@ -11,7 +11,8 @@
     "start": "node server.js",
     "migrate": "node server/scripts/migrate.js",
     "backup": "node server/scripts/backup.js",
-    "check": "node server/scripts/check.js"
+    "check": "node server/scripts/check.js && node server/scripts/game-selftest.js",
+    "gamecheck": "node server/scripts/game-selftest.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",
