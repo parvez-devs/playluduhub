@@ -25,3 +25,16 @@ export BACKUP_DIR='./data/backups'
 
 # Set 1 only behind a trusted reverse proxy that overwrites forwarding headers.
 export TRUST_PROXY='0'
+
+
+# Phone OTP verification (Twilio Verify v2)
+# Create a Verify Service in Twilio, then set either API Key/Secret or Account SID/Auth Token.
+export TWILIO_VERIFY_SERVICE_SID=''
+export TWILIO_ACCOUNT_SID=''
+export TWILIO_AUTH_TOKEN=''
+# Recommended alternative to Account SID/Auth Token:
+export TWILIO_API_KEY=''
+export TWILIO_API_SECRET=''
+
+# Development only. Never set OTP_DEV_CODE in production.
+export OTP_DEV_CODE=''
