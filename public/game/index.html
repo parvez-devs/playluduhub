@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#d51f2a">
   <title>PLAY LUDU HUB • Premium PvP Ludo</title>
-  <link rel="stylesheet" href="/game/style.css?v=game-king-v6">
+  <link rel="stylesheet" href="/game/style.css?v=game-king-v7">
 </head>
 <body>
 <div id="boot" class="boot" aria-label="Loading Play Ludu Hub">
@@ -34,7 +34,10 @@
       <em data-strikes></em>
     </div>
     <div class="match-mid">
-      <span id="connection" class="connection">Connecting…</span>
+      <div class="connection-row">
+        <span id="connection" class="connection">Connecting…</span>
+        <span id="latency" class="latency">-- ms</span>
+      </div>
       <strong id="stakes">SECURE PVP</strong>
       <small id="status" aria-live="polite">Loading match state…</small>
     </div>
@@ -98,6 +101,7 @@
 
 <div id="resultOverlay" class="result-overlay hidden">
   <div class="result-card">
+    <div class="result-confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <span>PLAY LUDU HUB</span>
     <h2 id="resultTitle">MATCH FINISHED</h2>
     <p id="resultText"></p>
@@ -105,7 +109,7 @@
   </div>
 </div>
 
-<script src="/game/game-engine.js?v=game-king-v6"></script>
-<script src="/game/pvp-client.js?v=game-king-v6"></script>
+<script src="/game/game-engine.js?v=game-king-v7"></script>
+<script src="/game/pvp-client.js?v=game-king-v7"></script>
 </body>
 </html>
