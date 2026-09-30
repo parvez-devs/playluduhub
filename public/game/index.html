@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#080b12">
   <title>PLAY LUDU HUB • V5 PvP Ludo</title>
-  <link rel="stylesheet" href="/game/style.css?v=premium-prod-1">
+  <link rel="stylesheet" href="/game/style.css?v=game-fix-2">
 </head>
 <body>
 <div id="boot" class="boot" aria-label="Loading Play Ludu Hub">
@@ -45,15 +45,18 @@
       </div>
     </div>
 
-    <div id="diceStation" class="dice-container shared blue">
-      <button id="roll" class="dice" type="button" disabled aria-label="Roll dice">
-        <div id="diceFace" class="dice-face" aria-hidden="true"></div>
-      </button>
-      <div class="turn-panel">
-        <span id="turnDot" class="turn-dot"></span>
-        <span class="turn-text">TURN</span>
-        <strong id="turnPlayer">WAITING</strong>
-        <span class="timer-chip"><b id="timer">--</b>s</span>
+    <div class="control-rail">
+      <div id="diceStation" class="dice-container shared blue">
+        <span id="turnColour" class="turn-colour">BLUE TURN</span>
+        <button id="roll" class="dice" type="button" disabled aria-label="Roll dice">
+          <div id="diceFace" class="dice-face" aria-hidden="true"></div>
+        </button>
+        <div class="turn-panel">
+          <span id="turnDot" class="turn-dot"></span>
+          <span class="turn-text">PLAYER</span>
+          <strong id="turnPlayer">WAITING</strong>
+          <span class="timer-chip"><b id="timer">--</b>s</span>
+        </div>
       </div>
     </div>
 
@@ -83,7 +86,7 @@
   </div>
 </div>
 
-<script src="/game/game-engine.js?v=premium-prod-1"></script>
-<script src="/game/pvp-client.js?v=premium-prod-1"></script>
+<script src="/game/game-engine.js?v=game-fix-2"></script>
+<script src="/game/pvp-client.js?v=game-fix-2"></script>
 </body>
 </html>
