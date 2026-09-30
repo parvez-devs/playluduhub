@@ -365,7 +365,7 @@ create policy disputes_read_own on public.disputes for select to authenticated u
 drop policy if exists payment_methods_read_enabled on public.payment_methods;
 create policy payment_methods_read_enabled on public.payment_methods for select to authenticated using (enabled=true);
 
-revoke all on all tables in schema public from anon, authenticated;
+revoke all on table public.users,public.wallets,public.ledger,public.admin_accounts,public.admin_ledger,public.sessions,public.admin_sessions,public.admin_devices,public.deposits,public.withdrawals,public.payment_methods,public.matches,public.match_players,public.disputes,public.aml_flags,public.audit_log,public.app_config,public.idempotency_keys,public.email_verifications,public.google_oauth_states,public.google_signup_sessions from anon, authenticated;
 grant usage on schema public to authenticated;
 grant select on public.users,public.wallets,public.ledger,public.deposits,public.withdrawals,public.payment_methods,public.matches,public.match_players,public.disputes to authenticated;
 grant select,insert,update,delete on public.users,public.wallets,public.deposits,public.withdrawals,public.payment_methods,public.matches,public.match_players,public.disputes,public.aml_flags,public.audit_log,public.app_config,public.idempotency_keys,public.sessions,public.admin_sessions,public.admin_devices,public.email_verifications,public.google_oauth_states,public.google_signup_sessions to service_role;
