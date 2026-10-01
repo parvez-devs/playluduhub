@@ -1,4 +1,6 @@
 import './game.css';
+import './real-theme.css';
+import {viewerSeatFor,visualSeatFor,rotateCoordForViewer} from './game-view.js';
 
 const root=document.querySelector<HTMLDivElement>('#root');
 if(!root)throw new Error('ROOT_NOT_FOUND');
@@ -143,8 +145,11 @@ function diceHtml(n:number){const on=PIPS[n]||[];return Array.from({length:9},(_
 function showDice(n:number){const f=$('#diceFace');if(f)f.innerHTML=diceHtml(n)}
 function spinDice(final:number){rolling=true;$('#roll')?.classList.add('rolling');clearInterval(diceSpin);diceSpin=setInterval(()=>showDice(1+Math.floor(Math.random()*6)),86);setTimeout(()=>{clearInterval(diceSpin);showDice(final);rolling=false;rollPending=false;$('#roll')?.classList.remove('rolling');render()},720)}
 function canMove(p:number,d:number|null){if(d==null||p===57)return false;if(p===-1)return d===6;return p+d<=57}
+function viewerSeat(){return viewerSeatFor(state?.players||[],me?.id)}
+function visualSeat(serverSeat:number){return visualSeatFor(serverSeat,viewerSeat())}
+function visualColour(serverSeat:number){return visualSeat(serverSeat)===0?'#168fd6':'#139b55'}
 function coord(seat:number,p:number,id:number){if(p===-1)return YARD[seat][id];if(p<52)return GENERAL[(p+(seat===1?26:0))%52];return HOME[seat][Math.max(0,Math.min(5,p-52))]}
-function visibleCoord(seat:number,p:number,id:number){const c=coord(seat,p,id),mySeat=state?.players.findIndex(x=>x.id===me?.id)===1?1:0;return mySeat===1?[14-c[0],14-c[1]]:c}
+function visibleCoord(seat:number,p:number,id:number){return rotateCoordForViewer(coord(seat,p,id),viewerSeat())}
 function buildBoard(){
   const art=$('#boardArt');if(!art||art.childElementCount)return;
   const yard=(n:string)=>'<div class="yard '+n+'"><div class="yard-inner"><span class="yard-hole"></span><span class="yard-hole"></span><span class="yard-hole"></span><span class="yard-hole"></span></div></div>';
@@ -158,22 +163,22 @@ function renderTokens(){
   const current=state.players[state.turnSeat]?.id,mine=current===me.id&&state.rolled!=null&&state.phase==='active',mySeat=state.players.findIndex(p=>p.id===me.id);
   const groups=new Map<string,Array<{seat:number;id:number;progress:number}>>();
   for(const t of all){const c=visibleCoord(t.seat,t.progress,t.id),k=c.join(',');if(!groups.has(k))groups.set(k,[]);groups.get(k)!.push(t)}
-  layer.innerHTML=all.map(t=>{const c=visibleCoord(t.seat,t.progress,t.id),group=groups.get(c.join(','))||[],idx=group.findIndex(x=>x.seat===t.seat&&x.id===t.id),a=group.length>1?Math.PI*2*idx/group.length:0,r=group.length>1?.18:0,left=(c[0]+.5+Math.cos(a)*r)/15*100,top=(c[1]+.5+Math.sin(a)*r)/15*100,play=mine&&t.seat===mySeat&&canMove(t.progress,state!.rolled),color=t.seat===0?'#168fd6':'#139b55';return '<button class="token '+(play?'playable ':'')+'" style="left:'+left+'%;top:'+top+'%;--tx:0px;--ty:0px;--token-colour:'+color+'" data-token="'+t.id+'" '+(play?'':'disabled')+'>'+tokenSvg(color)+'<span class="token-number">'+(t.id+1)+'</span><span class="playable-ring"><i></i><i></i><i></i><i></i></span></button>'}).join('');
+  layer.innerHTML=all.map(t=>{const c=visibleCoord(t.seat,t.progress,t.id),group=groups.get(c.join(','))||[],idx=group.findIndex(x=>x.seat===t.seat&&x.id===t.id),a=group.length>1?Math.PI*2*idx/group.length:0,r=group.length>1?.18:0,left=(c[0]+.5+Math.cos(a)*r)/15*100,top=(c[1]+.5+Math.sin(a)*r)/15*100,play=mine&&t.seat===mySeat&&canMove(t.progress,state!.rolled),color=visualColour(t.seat);return '<button class="token '+(play?'playable ':'')+'" style="left:'+left+'%;top:'+top+'%;--tx:0px;--ty:0px;--token-colour:'+color+'" data-token="'+t.id+'" '+(play?'':'disabled')+'>'+tokenSvg(color)+'<span class="token-number">'+(t.id+1)+'</span><span class="playable-ring"><i></i><i></i><i></i><i></i></span></button>'}).join('');
   layer.querySelectorAll<HTMLButtonElement>('[data-token]').forEach(b=>b.onclick=()=>moveToken(Number(b.dataset.token)));
 }
 function syncStats(){for(const p of match?.playerStats||[]){if(p.username)names.set(p.userId,'@'+p.username);strikes.set(p.userId,Number(p.timeoutStrikes||0))}}
-function renderPlayers(){if(!state)return;const current=state.players[state.turnSeat]?.id;state.players.forEach((p,i)=>{const card=$('#p'+i),n=card?.querySelector('[data-name]'),a=card?.querySelector('[data-avatar]'),h=card?.querySelector('[data-home]'),st=card?.querySelector('[data-strikes]'),stat=(match?.playerStats||[]).find((x:any)=>x.userId===p.id);if(n)n.textContent=pname(p.id);if(a)a.textContent=initials(pname(p.id));if(h)h.textContent=p.tokens.filter(x=>x===57).length+' / 4 HOME';if(st)st.textContent=(strikes.get(p.id)||0)?'⚠ '+strikes.get(p.id):'';card?.classList.toggle('active',p.id===current);card?.classList.toggle('online',!!stat?.connected)})}
+function renderPlayers(){if(!state)return;const current=state.players[state.turnSeat]?.id;state.players.forEach((p,serverSeat)=>{const card=$('#p'+visualSeat(serverSeat)),n=card?.querySelector('[data-name]'),a=card?.querySelector('[data-avatar]'),h=card?.querySelector('[data-home]'),st=card?.querySelector('[data-strikes]'),stat=(match?.playerStats||[]).find((x:any)=>x.userId===p.id);if(n)n.textContent=pname(p.id);if(a)a.textContent=initials(pname(p.id));if(h)h.textContent=p.tokens.filter(x=>x===57).length+' / 4 HOME';if(st)st.textContent=(strikes.get(p.id)||0)?'⚠ '+strikes.get(p.id):'';card?.classList.toggle('active',p.id===current);card?.classList.toggle('online',!!stat?.connected)})}
 function render(){
   buildBoard();
-  if(match){const code=$('#matchCode'),stakes=$('#stakes');if(code)code.textContent='MATCH '+String(match.id||matchId).slice(-8).toUpperCase();if(stakes)stakes.textContent='ENTRY ৳'+Number(match.entryFee||0).toFixed(2)+' • BET ৳'+Number(match.betAmount||0).toFixed(2)}
+  if(match){const code=$('#matchCode'),stakes=$('#stakes');if(code)code.textContent='MATCH '+String(match.id||matchId).slice(-8).toUpperCase();if(stakes)stakes.textContent=String(match.mode||'classic').toUpperCase()+' • ENTRY ৳'+Number(match.entryFee||0).toFixed(2)+' • BET ৳'+Number(match.betAmount||0).toFixed(2)}
   const waiting=match?.status==='waiting'&&!state;$('#waitingOverlay')?.classList.toggle('hidden',!waiting);$('#cancelWaiting')?.classList.toggle('hidden',!(waiting&&match?.playerAId===me?.id));
   if(!state){const st=$('#status');if(st)st.textContent=waiting?'Waiting for opponent':'Loading match state…';renderTokens();return}
   renderPlayers();renderTokens();
-  const current=state.players[state.turnSeat]?.id,mine=current===me.id,seat=state.turnSeat,finished=state.phase==='finished',mySeat=state.players.findIndex(p=>p.id===me.id);
-  $('.game')?.classList.toggle('viewer-green',mySeat===1);const board=$('#board');board?.classList.toggle('turn-blue',seat===0&&!finished);board?.classList.toggle('turn-green',seat===1&&!finished);board?.classList.toggle('my-turn',mine&&!finished);board?.classList.toggle('roll-phase',mine&&!finished&&state.rolled==null);board?.classList.toggle('move-phase',mine&&!finished&&state.rolled!=null);
-  const station=$('#diceStation');station?.classList.toggle('blue',seat===0);station?.classList.toggle('green',seat===1);station?.classList.toggle('dock-left',seat===mySeat);station?.classList.toggle('dock-right',seat!==mySeat);
+  const current=state.players[state.turnSeat]?.id,mine=current===me.id,seat=state.turnSeat,finished=state.phase==='finished',mySeat=state.players.findIndex(p=>p.id===me.id),turnVisual=visualSeat(seat);
+  $('.game')?.classList.toggle('viewer-green',mySeat===1);const board=$('#board');board?.classList.toggle('turn-blue',turnVisual===0&&!finished);board?.classList.toggle('turn-green',turnVisual===1&&!finished);board?.classList.toggle('my-turn',mine&&!finished);board?.classList.toggle('roll-phase',mine&&!finished&&state.rolled==null);board?.classList.toggle('move-phase',mine&&!finished&&state.rolled!=null);
+  const station=$('#diceStation');station?.classList.toggle('blue',turnVisual===0);station?.classList.toggle('green',turnVisual===1);station?.classList.toggle('dock-left',seat===mySeat);station?.classList.toggle('dock-right',seat!==mySeat);
   const banner=$('#turnBanner');if(banner)banner.textContent=finished?'MATCH FINISHED':mine?(state.rolled==null?'YOUR TURN • ROLL DICE':'YOUR TURN • MOVE TOKEN'):pname(current)+' TURN';
-  const col=$('#turnColour');if(col)col.textContent=finished?'MATCH END':seat===0?'BLUE TURN':'GREEN TURN';
+  const col=$('#turnColour');if(col)col.textContent=finished?'MATCH END':turnVisual===0?'BLUE TURN':'GREEN TURN';
   const hint=$('#rollHint');if(hint)hint.textContent=finished?'COMPLETE':mine?(state.rolled==null?'TAP DICE TO ROLL':'SELECT A TOKEN'):'OPPONENT PLAYING';
   const tp=$('#turnPlayer');if(tp)tp.textContent=finished?'FINISHED':mine?'YOU':pname(current);
   const status=$('#status');if(status)status.textContent=finished?'Match complete':mine?(state.rolled==null?'Your turn — roll dice':'Choose a highlighted token'):pname(current)+' is playing';

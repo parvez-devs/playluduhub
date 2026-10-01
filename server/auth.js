@@ -4,6 +4,7 @@ const {db}=require('./db');
 const {uid,randomToken,sha256,hmac,timingSafeEqual,scryptHash,scryptVerify,parseCookies}=require('./utils');
 const wallet=require('./wallet');
 const otp=require('./otp');
+const referrals=require('./referrals');
 
 const SESSION_MS=30*24*60*60*1000;
 const signupSchema=z.object({
@@ -11,7 +12,8 @@ const signupSchema=z.object({
   username:z.string().trim().regex(/^[a-zA-Z0-9_]{3,24}$/),
   phone:z.string().trim().min(8).max(20),
   email:z.string().trim().email().max(160),
-  password:z.string().min(10).max(200)
+  password:z.string().min(10).max(200),
+  referralCode:z.string().trim().max(24).optional().or(z.literal(''))
 });
 const loginSchema=z.object({login:z.string().trim().min(3).max(160),password:z.string().min(1).max(200)});
 
@@ -25,11 +27,14 @@ function assertUnique({username,email,phone}){
 async function signup(input){
   const x=signupSchema.parse(input),phone=otp.normalizePhone(x.phone),email=x.email.toLowerCase(),emailOtpRequired=process.env.EMAIL_OTP_REQUIRED==='1';
   assertUnique({username:x.username,email,phone});
-  const id=uid('usr'),ph=await scryptHash(x.password),t=Date.now();
+  const id=uid('usr'),ph=await scryptHash(x.password),t=Date.now(),referrer=x.referralCode?referrals.resolveCode(x.referralCode):null;
+  if(x.referralCode&&!referrer)throw err('INVALID_REFERRAL_CODE',400);
+  const referralCode=referrals.makeCode(x.username,id);
   db.transaction(()=>{
-    db.prepare('INSERT INTO users(id,name,username,phone,email,password_hash,display_name,phone_verified,email_verified,created_at,updated_at) VALUES(?,?,?,?,?,?,?,1,?,?,?)')
-      .run(id,x.name,x.username,phone,email,ph,x.name,emailOtpRequired?0:1,t,t);
+    db.prepare('INSERT INTO users(id,name,username,phone,email,password_hash,display_name,phone_verified,email_verified,referral_code,referred_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,1,?,?,?,?,?)')
+      .run(id,x.name,x.username,phone,email,ph,x.name,emailOtpRequired?0:1,referralCode,referrer?.id||null,t,t);
     wallet.createWallet(id);
+    if(referrer)referrals.attach(referrer.id,id,x.referralCode);
   })();
   if(!emailOtpRequired)return {user:publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(id)),verification:null};
   try{
@@ -83,7 +88,7 @@ function fromRequest(req){
 }
 function logout(token){if(token)db.prepare('DELETE FROM sessions WHERE token_hash=?').run(sha256(token));}
 function publicUser(u){
-  return {id:u.id,name:u.name,username:u.username,phone:u.phone,email:u.email,status:u.status,avatar:u.avatar,displayName:u.display_name,createdAt:u.created_at,emailVerified:!!u.email_verified,googleLinked:!!u.google_sub,selfExcluded:!!u.self_excluded,coolOffUntil:u.cool_off_until,dailyDepositLimit:u.daily_deposit_limit==null?null:u.daily_deposit_limit/100};
+  return {id:u.id,name:u.name,username:u.username,phone:u.phone,email:u.email,status:u.status,avatar:u.avatar,displayName:u.display_name,createdAt:u.created_at,emailVerified:!!u.email_verified,googleLinked:!!u.google_sub,selfExcluded:!!u.self_excluded,coolOffUntil:u.cool_off_until,dailyDepositLimit:u.daily_deposit_limit==null?null:u.daily_deposit_limit/100,referralCode:u.referral_code||null};
 }
 async function verifyEmail(input){
   const x=z.object({verificationId:z.string().min(8).max(120),code:z.string().trim().regex(/^\d{6}$/)}).parse(input);
